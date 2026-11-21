@@ -119,7 +119,7 @@ func NewCLNService(ctx context.Context, eventPublisher events.EventPublisher, ad
 		clientHold := clngrpcHold.NewHoldClient(connHold)
 
 		logger.Logger.Info("Testing CLN hold plugin gRPC connection")
-		_, err = svc.clientHold.List(ctx, &clngrpcHold.ListRequest{Constraint: &clngrpcHold.ListRequest_Pagination_{
+		_, err = clientHold.List(ctx, &clngrpcHold.ListRequest{Constraint: &clngrpcHold.ListRequest_Pagination_{
 			Pagination: &clngrpcHold.ListRequest_Pagination{
 				IndexStart: 0,
 				Limit:      1,
@@ -1166,6 +1166,12 @@ func (c *CLNService) GetNewOnchainAddress(ctx context.Context) (string, error) {
 
 	logger.Logger.WithField("resp", resp).Error("No known onchain address type returned")
 	return "", fmt.Errorf("unknown default onchain address type")
+}
+
+// CLN has no way to ask for an unused address, so this returns a new address
+// each time.
+func (c *CLNService) GetUnusedOnchainAddress(ctx context.Context) (string, error) {
+	return c.GetNewOnchainAddress(ctx)
 }
 
 func (c *CLNService) GetNodeConnectionInfo(ctx context.Context) (*lnclient.NodeConnectionInfo, error) {

@@ -1,15 +1,14 @@
 name: Multiplatform Docker build & push
 on:
   push:
-    branches:
-      - master
-    tags:
-      - v*
 permissions:
   contents: read
-  packages: write
+
 jobs:
   build:
+    permissions:
+      contents: read
+      packages: write
     env:
       REGISTRY: ghcr.io
       IMAGENAME: ${{ github.event.repository.name }}
@@ -21,6 +20,8 @@ jobs:
         run: rm -rf /opt/hostedtoolcache
       - uses: actions/checkout@v4
         name: Check out code
+        with:
+          persist-credentials: false
       - name: Install Go
         uses: actions/setup-go@v5
         with:

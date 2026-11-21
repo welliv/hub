@@ -4,6 +4,7 @@ package bark
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -275,20 +276,25 @@ func (bs *BarkService) handleLightningReceiveMovement(movement bark.Movement) {
 		return
 	}
 
-	receive, err := bs.wallet.LightningReceiveState(paymentHash)
+	// Build the receive from the movement itself rather than looking it up with
+	// LightningReceiveState: bark finishes the movement (which emits this
+	// notification) before it writes the settled receive record, so a lookup
+	// here can race and find nothing.
+	// TODO: change back to LightningReceiveState when the race is fixed in bark.
+	receive, err := buildSettledReceiveFromMovement(paymentHash, movement)
 	if err != nil {
-		logger.Logger.WithError(err).WithField("paymentHash", paymentHash).Warn("Failed to look up claimed Bark receive")
+		logger.Logger.WithError(err).WithField("paymentHash", paymentHash).Warn("Failed to read claimed Bark receive from movement")
 		return
 	}
 
-	tx, err := bs.lightningReceiveToTransaction(&receive)
+	tx, err := bs.lightningReceiveToTransaction(receive)
 	if err != nil {
 		logger.Logger.WithError(err).WithField("paymentHash", receive.PaymentHash).Warn("Failed to convert claimed Bark receive to transaction")
 		return
 	}
 	logger.Logger.WithFields(logrus.Fields{
 		"paymentHash": receive.PaymentHash,
-		"amountSats":  receive.AmountSats,
+		"amountMsat":  tx.AmountMsat,
 	}).Info("Bark lightning receive claimed")
 	bs.eventPublisher.Publish(&events.Event{
 		Event:      "nwc_lnclient_payment_received",
@@ -393,6 +399,42 @@ func (bs *BarkService) deliverSendResult(paymentHash string, res sendResult, fal
 	}
 }
 
+// buildSettledReceiveFromMovement reads a settled lightning receive from a
+// successful lightning_receive movement, which carries the invoice and the
+// preimage (in its metadata).
+func buildSettledReceiveFromMovement(paymentHash string, movement bark.Movement) (*bark.LightningReceive, error) {
+	if movement.LightningInvoice == nil || *movement.LightningInvoice == "" {
+		return nil, errors.New("movement has no lightning invoice")
+	}
+
+	var metadata struct {
+		PaymentPreimage string `json:"payment_preimage"`
+	}
+	if err := json.Unmarshal([]byte(movement.MetadataJson), &metadata); err != nil {
+		return nil, fmt.Errorf("failed to parse movement metadata: %w", err)
+	}
+	if metadata.PaymentPreimage == "" {
+		return nil, errors.New("movement metadata has no payment preimage")
+	}
+
+	settledAt := time.Now().Unix()
+	if movement.CompletedAt != nil {
+		completedAt, err := time.Parse(time.RFC3339, *movement.CompletedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse movement completed_at: %w", err)
+		}
+		settledAt = completedAt.Unix()
+	}
+
+	return &bark.LightningReceive{
+		PaymentHash:     paymentHash,
+		Invoice:         *movement.LightningInvoice,
+		State:           receiveStateSettled,
+		PaymentPreimage: &metadata.PaymentPreimage,
+		SettledAt:       &settledAt,
+	}, nil
+}
+
 func paymentHashFromMovement(movement bark.Movement) (string, bool) {
 	if movement.PaymentHash == nil || *movement.PaymentHash == "" {
 		logger.Logger.WithFields(logrus.Fields{
@@ -455,8 +497,8 @@ func (bs *BarkService) MakeInvoice(ctx context.Context, amountMsat int64, descri
 		desc = &description
 	}
 
-	// The nil argument is an optional anti-DoS token, which we don't use.
-	invoice, err := bs.wallet.Bolt11Invoice(uint64(amountMsat/1000), desc, nil)
+	// The nil arguments are an optional anti-DoS token and an optional expiry, which we don't use.
+	invoice, err := bs.wallet.Bolt11Invoice(uint64(amountMsat/1000), desc, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("bark Bolt11Invoice failed: %w", err)
 	}
@@ -515,7 +557,7 @@ func (bs *BarkService) SendPaymentSync(invoice string, amountMsat *uint64) (*lnc
 	}
 	defer bs.clearInflightSend(paymentHash)
 
-	if _, err := bs.wallet.PayLightningInvoice(invoice, nil, false); err != nil {
+	if _, err := bs.wallet.PayLightningInvoice(invoice, nil, false, nil); err != nil {
 		return nil, fmt.Errorf("bark PayLightningInvoice failed: %w", err)
 	}
 
@@ -610,6 +652,10 @@ func (bs *BarkService) GetBalances(ctx context.Context, includeInactiveChannels 
 		return nil, err
 	}
 	spendableMsat := int64(balance.SpendableSats) * 1000
+	// Since bark 0.8.0, SpendableSats excludes VTXOs awaiting refresh. They are
+	// still the user's funds (maintenance refreshes them), so count them in the
+	// total but not in what can be sent right now.
+	totalMsat := spendableMsat + int64(balance.NeedsRefreshSats)*1000
 
 	return &lnclient.BalancesResponse{
 		Onchain: lnclient.OnchainBalanceResponse{
@@ -617,7 +663,7 @@ func (bs *BarkService) GetBalances(ctx context.Context, includeInactiveChannels 
 			PendingSweepBalancesDetails: []lnclient.PendingBalanceDetails{},
 		},
 		Lightning: lnclient.LightningBalanceResponse{
-			TotalSpendableMsat:      spendableMsat,
+			TotalSpendableMsat:      totalMsat,
 			NextMaxSpendableMsat:    spendableMsat,
 			NextMaxSpendableMPPMsat: spendableMsat,
 		},
@@ -728,6 +774,10 @@ func (bs *BarkService) DisconnectPeer(ctx context.Context, peerId string) error 
 }
 
 func (bs *BarkService) GetNewOnchainAddress(ctx context.Context) (string, error) {
+	return "", errors.New("not implemented")
+}
+
+func (bs *BarkService) GetUnusedOnchainAddress(ctx context.Context) (string, error) {
 	return "", errors.New("not implemented")
 }
 

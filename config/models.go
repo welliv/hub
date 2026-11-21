@@ -11,7 +11,6 @@ const (
 )
 
 const (
-	OnchainAddressKey           = "OnchainAddress"
 	AutoSwapBalanceThresholdKey = "AutoSwapBalanceThreshold"
 	AutoSwapAmountKey           = "AutoSwapAmount"
 	AutoSwapDestinationKey      = "AutoSwapDestination"
@@ -29,10 +28,13 @@ type AppConfig struct {
 	DatabaseUri                        string `envconfig:"DATABASE_URI" default:"nwc.db"`
 	LogLevel                           string `envconfig:"LOG_LEVEL" default:"4"`
 	LogToFile                          bool   `envconfig:"LOG_TO_FILE" default:"true"`
-	Network                            string `envconfig:"NETWORK"`
-	LDKNetwork                         string `envconfig:"LDK_NETWORK"`
-	LDKEsploraServer                   string `envconfig:"LDK_ESPLORA_SERVER"`
-	LDKElectrumServer                  string `envconfig:"LDK_ELECTRUM_SERVER" default:"ssl://electrum.getalbypro.com:50002"`
+	Network                            string `envconfig:"NETWORK" default:"bitcoin"`
+	EsploraServer                      string `envconfig:"ESPLORA_SERVER"`
+	ElectrumServer                     string `envconfig:"ELECTRUM_SERVER" default:"ssl://electrum.getalbypro.com:50002"`
+	BitcoindRpcHost                    string `envconfig:"BITCOIND_RPC_HOST"`
+	BitcoindRpcPort                    string `envconfig:"BITCOIND_RPC_PORT"`
+	BitcoindRpcUser                    string `envconfig:"BITCOIND_RPC_USER"`
+	BitcoindRpcPassword                string `envconfig:"BITCOIND_RPC_PASSWORD"`
 	LDKGossipSource                    string `envconfig:"LDK_GOSSIP_SOURCE"`
 	LDKLogLevel                        string `envconfig:"LDK_LOG_LEVEL" default:"3"`
 	LDKMaxChannelSaturationPowerOfHalf uint8  `envconfig:"LDK_MAX_CHANNEL_SATURATION" default:"2"`
@@ -44,10 +46,6 @@ type AppConfig struct {
 	LDKAnnouncementAddresses           string `envconfig:"LDK_ANNOUNCEMENT_ADDRESSES"`
 	LDKTransientNetworkGraph           bool   `envconfig:"LDK_TRANSIENT_NETWORK_GRAPH" default:"false"`
 	RebalanceServiceUrl                string `envconfig:"REBALANCE_SERVICE_URL" default:"https://megalithic.me"`
-	LDKBitcoindRpcHost                 string `envconfig:"LDK_BITCOIND_RPC_HOST"`
-	LDKBitcoindRpcPort                 string `envconfig:"LDK_BITCOIND_RPC_PORT"`
-	LDKBitcoindRpcUser                 string `envconfig:"LDK_BITCOIND_RPC_USER"`
-	LDKBitcoindRpcPassword             string `envconfig:"LDK_BITCOIND_RPC_PASSWORD"`
 	MempoolApi                         string `envconfig:"MEMPOOL_API" default:"https://mempool.space/api"`
 	AlbyClientId                       string `envconfig:"ALBY_OAUTH_CLIENT_ID" default:"J2PbXS1yOf"`
 	AlbyClientSecret                   string `envconfig:"ALBY_OAUTH_CLIENT_SECRET" default:"rABK2n16IWjLTZ9M1uKU"`
@@ -60,8 +58,9 @@ type AppConfig struct {
 	GoProfilerAddr                     string `envconfig:"GO_PROFILER_ADDR"`
 	EnableAdvancedSetup                bool   `envconfig:"ENABLE_ADVANCED_SETUP" default:"true"`
 	AutoUnlockPassword                 string `envconfig:"AUTO_UNLOCK_PASSWORD"`
+	SetupCode                          string `envconfig:"SETUP_CODE"`
 	LogDBQueries                       bool   `envconfig:"LOG_DB_QUERIES" default:"false"`
-	BoltzApi                           string `envconfig:"BOLTZ_API" default:"https://api.boltz.exchange"`
+	BoltzApi                           string `envconfig:"BOLTZ_API"`
 	HideUpdateBanner                   bool   `envconfig:"HIDE_UPDATE_BANNER" default:"false"`
 	CLNAddress                         string `envconfig:"CLN_ADDRESS"`
 	CLNLightningDir                    string `envconfig:"CLN_LIGHTNING_DIR"`
@@ -83,6 +82,16 @@ type AppConfig struct {
 	GreenlightJitMaxFeeSat uint64 `envconfig:"GREENLIGHT_JIT_MAX_FEE_SAT"`
 	// Stop minting JIT invoices after an LSP skims more than it advertised.
 	GreenlightRefuseJitAfterLspViolation bool `envconfig:"GREENLIGHT_REFUSE_JIT_AFTER_LSP_VIOLATION"`
+
+	// Deprecated: old names of variables above. They have no default and are
+	// used instead of the new name if set, see applyDeprecatedEnv.
+	LDKNetwork             string `envconfig:"LDK_NETWORK"`
+	LDKEsploraServer       string `envconfig:"LDK_ESPLORA_SERVER"`
+	LDKElectrumServer      string `envconfig:"LDK_ELECTRUM_SERVER"`
+	LDKBitcoindRpcHost     string `envconfig:"LDK_BITCOIND_RPC_HOST"`
+	LDKBitcoindRpcPort     string `envconfig:"LDK_BITCOIND_RPC_PORT"`
+	LDKBitcoindRpcUser     string `envconfig:"LDK_BITCOIND_RPC_USER"`
+	LDKBitcoindRpcPassword string `envconfig:"LDK_BITCOIND_RPC_PASSWORD"`
 }
 
 func (c *AppConfig) IsDefaultClientId() bool {

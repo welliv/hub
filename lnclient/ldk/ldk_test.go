@@ -1,12 +1,21 @@
 package ldk
 
 import (
+	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/getAlby/ldk-node-go/ldk_node"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/getAlby/hub/events"
+	"github.com/getAlby/hub/logger"
 	"github.com/getAlby/hub/tests"
 )
 
@@ -132,6 +141,116 @@ func TestComputeLsps2MinPaymentSizeMsat(t *testing.T) {
 	})
 }
 
+func TestFetchLsps2OpeningFeeParamsCachesSuccessfulResponse(t *testing.T) {
+	ls := &LDKService{
+		lsps2Pubkey:  "pubkey",
+		lsps2Address: "127.0.0.1:9735",
+	}
+	menu := []ldk_node.Lsps2OpeningFeeParams{
+		makeLsps2OpeningFeeParams(10_000, 5_000, 1_000_000, 100_000_000),
+	}
+	calls := 0
+	request := func() ([]ldk_node.Lsps2OpeningFeeParams, error) {
+		calls++
+		return menu, nil
+	}
+
+	ls.fetchLsps2OpeningFeeParamsWith(time.Hour, request)
+	ls.fetchLsps2OpeningFeeParamsWith(time.Hour, request)
+
+	assert.Equal(t, 1, calls)
+	require.NotNil(t, ls.lsps2MinPaymentSizeMsat)
+	require.NotNil(t, ls.lsps2MaxPaymentSizeMsat)
+	assert.Equal(t, uint64(1_000_000), *ls.lsps2MinPaymentSizeMsat)
+	assert.Equal(t, uint64(100_000_000), *ls.lsps2MaxPaymentSizeMsat)
+	assert.Equal(t, menu, ls.lsps2OpeningFeeParamsMenu)
+}
+
+func TestFetchLsps2OpeningFeeParamsBacksOffAfterFailure(t *testing.T) {
+	logger.Init(strconv.Itoa(int(logrus.DebugLevel)))
+	oldMin := uint64(2_000_000)
+	oldMax := uint64(50_000_000)
+	oldMenu := []ldk_node.Lsps2OpeningFeeParams{
+		makeLsps2OpeningFeeParams(20_000, 5_000, oldMin, oldMax),
+	}
+	ls := &LDKService{
+		lsps2Pubkey:               "pubkey",
+		lsps2Address:              "127.0.0.1:9735",
+		lsps2InfoFetchedAt:        time.Now().Add(-2 * time.Hour),
+		lsps2MinPaymentSizeMsat:   &oldMin,
+		lsps2MaxPaymentSizeMsat:   &oldMax,
+		lsps2OpeningFeeParamsMenu: oldMenu,
+	}
+	calls := 0
+	request := func() ([]ldk_node.Lsps2OpeningFeeParams, error) {
+		calls++
+		return nil, errors.New("LSP unavailable")
+	}
+
+	ls.fetchLsps2OpeningFeeParamsWith(time.Hour, request)
+	ls.fetchLsps2OpeningFeeParamsWith(time.Hour, request)
+
+	assert.Equal(t, 1, calls)
+	assert.Equal(t, oldMin, *ls.lsps2MinPaymentSizeMsat)
+	assert.Equal(t, oldMax, *ls.lsps2MaxPaymentSizeMsat)
+	assert.Equal(t, oldMenu, ls.lsps2OpeningFeeParamsMenu)
+
+	ls.lsps2InfoMu.Lock()
+	ls.lsps2InfoLastAttemptedAt = time.Now().Add(-lsps2InfoRetryBackoff - time.Second)
+	ls.lsps2InfoMu.Unlock()
+	ls.fetchLsps2OpeningFeeParamsWith(time.Hour, request)
+
+	assert.Equal(t, 2, calls)
+}
+
+func TestFetchLsps2OpeningFeeParamsConcurrentCallersWaitForInFlightFetch(t *testing.T) {
+	ls := &LDKService{
+		lsps2Pubkey:  "pubkey",
+		lsps2Address: "127.0.0.1:9735",
+	}
+	fetchStarted := make(chan struct{})
+	releaseFetch := make(chan struct{})
+	firstDone := make(chan struct{})
+	go func() {
+		defer close(firstDone)
+		ls.fetchLsps2OpeningFeeParamsWith(time.Hour, func() ([]ldk_node.Lsps2OpeningFeeParams, error) {
+			close(fetchStarted)
+			<-releaseFetch
+			return []ldk_node.Lsps2OpeningFeeParams{
+				makeLsps2OpeningFeeParams(10_000, 5_000, 1_000_000, 100_000_000),
+			}, nil
+		})
+	}()
+	<-fetchStarted
+
+	secondDone := make(chan struct{})
+	secondFetchCalled := false
+	go func() {
+		defer close(secondDone)
+		ls.fetchLsps2OpeningFeeParamsWith(time.Hour, func() ([]ldk_node.Lsps2OpeningFeeParams, error) {
+			secondFetchCalled = true
+			return nil, nil
+		})
+	}()
+
+	select {
+	case <-secondDone:
+		t.Fatal("concurrent LSPS2 caller returned before the in-flight fetch completed")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(releaseFetch)
+	<-firstDone
+	<-secondDone
+
+	assert.False(t, secondFetchCalled)
+	min, max := ls.GetLiquiditySourceLsps2PaymentSizeRangeMsat()
+	require.NotNil(t, min)
+	require.NotNil(t, max)
+	assert.Equal(t, uint64(1_000_000), *min)
+	assert.Equal(t, uint64(100_000_000), *max)
+}
+
 func TestSanitizeChainEndpointForBitcoind(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -200,4 +319,82 @@ func TestSanitizeChainEndpointForURLs(t *testing.T) {
 			assert.Equal(t, tt.expected, sanitizeChainEndpoint(tt.endpoint, ""))
 		})
 	}
+}
+
+// writeChannelBackup saves a static channel backup containing the given
+// channels to the backup directory.
+func writeChannelBackup(t *testing.T, backupDir string, fileName string, channelIds ...string) {
+	backup := events.StaticChannelsBackupEvent{}
+	for _, channelId := range channelIds {
+		backup.Channels = append(backup.Channels, events.ChannelBackup{ChannelID: channelId})
+	}
+	backupBytes, err := json.Marshal(backup)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(backupDir, fileName), backupBytes, 0600))
+}
+
+func TestLatestChannelBackupIsMissingChannels(t *testing.T) {
+	logger.Init(strconv.Itoa(int(logrus.DebugLevel)))
+
+	t.Run("no channels", func(t *testing.T) {
+		assert.False(t, latestChannelBackupIsMissingChannels(filepath.Join(t.TempDir(), "static_channel_backups"), []string{}))
+	})
+
+	t.Run("missing backup directory", func(t *testing.T) {
+		assert.True(t, latestChannelBackupIsMissingChannels(filepath.Join(t.TempDir(), "static_channel_backups"), []string{"a"}))
+	})
+
+	t.Run("empty backup directory", func(t *testing.T) {
+		assert.True(t, latestChannelBackupIsMissingChannels(t.TempDir(), []string{"a"}))
+	})
+
+	t.Run("only non-backup files", func(t *testing.T) {
+		backupDir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(backupDir, "notes.txt"), []byte("x"), 0600))
+		assert.True(t, latestChannelBackupIsMissingChannels(backupDir, []string{"a"}))
+	})
+
+	t.Run("latest backup contains all channels", func(t *testing.T) {
+		backupDir := t.TempDir()
+		writeChannelBackup(t, backupDir, "2024-01-02T03-04-05.json", "a", "b", "closed")
+		assert.False(t, latestChannelBackupIsMissingChannels(backupDir, []string{"a", "b"}))
+	})
+
+	t.Run("latest backup is missing a channel", func(t *testing.T) {
+		backupDir := t.TempDir()
+		writeChannelBackup(t, backupDir, "2024-01-02T03-04-05.json", "a")
+		assert.True(t, latestChannelBackupIsMissingChannels(backupDir, []string{"a", "b"}))
+	})
+
+	t.Run("only the latest backup is checked", func(t *testing.T) {
+		backupDir := t.TempDir()
+		writeChannelBackup(t, backupDir, "2024-01-02T03-04-05.json", "a", "b")
+		writeChannelBackup(t, backupDir, "2024-02-01T00-00-00.json", "a")
+		assert.True(t, latestChannelBackupIsMissingChannels(backupDir, []string{"a", "b"}))
+
+		writeChannelBackup(t, backupDir, "2024-03-01T00-00-00.json", "a", "b")
+		assert.False(t, latestChannelBackupIsMissingChannels(backupDir, []string{"a", "b"}))
+	})
+
+	t.Run("invalid latest backup", func(t *testing.T) {
+		backupDir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(backupDir, "2024-01-02T03-04-05.json"), []byte("not json"), 0600))
+		assert.True(t, latestChannelBackupIsMissingChannels(backupDir, []string{"a"}))
+	})
+
+	t.Run("glob characters in path", func(t *testing.T) {
+		backupDir := filepath.Join(t.TempDir(), "work[dir")
+		require.NoError(t, os.MkdirAll(backupDir, 0700))
+		assert.True(t, latestChannelBackupIsMissingChannels(backupDir, []string{"a"}))
+
+		writeChannelBackup(t, backupDir, "2024-01-02T03-04-05.json", "a")
+		assert.False(t, latestChannelBackupIsMissingChannels(backupDir, []string{"a"}))
+	})
+
+	t.Run("unreadable backup path", func(t *testing.T) {
+		// a file instead of a directory: neither missing nor listable
+		backupPath := filepath.Join(t.TempDir(), "static_channel_backups")
+		require.NoError(t, os.WriteFile(backupPath, []byte("x"), 0600))
+		assert.False(t, latestChannelBackupIsMissingChannels(backupPath, []string{"a"}))
+	})
 }

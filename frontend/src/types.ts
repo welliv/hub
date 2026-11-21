@@ -162,14 +162,15 @@ export interface AppPermissions {
 export interface InfoResponse {
   backendType: BackendType;
   setupCompleted: boolean;
+  setupCodeRequired: boolean;
   oauthRedirect: boolean;
   albyAccountConnected: boolean;
   ldkVssEnabled: boolean;
   ldkVssUrl: string;
   vssSupported: boolean;
   databaseType: string;
+  swapApiUrl: string;
   running: boolean;
-  albyAuthUrl: string;
   nextBackupReminder: string;
   albyUserIdentifier: string;
   network?: Network;
@@ -189,12 +190,15 @@ export interface InfoResponse {
   chainDataSourceType?: string;
   chainDataSourceAddress?: string;
   jitChannelsLiquiditySource?: string;
-  jitChannelsMinPaymentSizeMsat?: number;
-  jitChannelsMaxPaymentSizeMsat?: number;
   jitChannelsEnabled: boolean;
   hideUpdateBanner: boolean;
   supportsBolt12: boolean;
   nodeMigrationFileCreated: boolean;
+}
+
+export interface JitChannelsInfoResponse {
+  minPaymentSizeMsat?: number;
+  maxPaymentSizeMsat?: number;
 }
 
 export type BitcoinDisplayFormat = "sats" | "bip177";
@@ -253,10 +257,12 @@ export type BaseSwap = {
   invoice: string;
   autoSwap: boolean;
   usedXpub: boolean;
+  apiUrl: string;
   boltzPubkey: string;
   createdAt: string;
   updatedAt: string;
   lockupTxId?: string;
+  depositTxId?: string;
   claimTxId?: string;
   receiveAmountSat?: number;
 };
@@ -544,6 +550,7 @@ export type AlbyInfo = {
   hub: {
     latestVersion: string;
     latestReleaseNotes: string;
+    swapProvider: string;
   };
 };
 
@@ -560,6 +567,10 @@ export type Currency = {
   symbol: string;
   name: string;
   priority: number;
+};
+
+export type AlbyAuthUrlResponse = {
+  url: string;
 };
 
 // TODO: use camel case (needs mapping in the Alby OAuth Service - see how AlbyInfo is done above)
@@ -605,9 +616,15 @@ export type AutoSwapRequest = {
   unlockPassword?: string;
 };
 
-export type InitiateSwapRequest = {
-  swapAmountSat?: number;
-  destination?: string;
+export type InitiateSwapInRequest = {
+  swapAmountSat: number;
+  internalPayment?: boolean;
+  feeRate?: number;
+};
+
+export type InitiateSwapOutRequest = {
+  swapAmountSat: number;
+  destination: string;
 };
 
 export type LSPOrderResponse = {

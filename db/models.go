@@ -105,12 +105,14 @@ type Swap struct {
 	RefundAddress      string
 	LockupAddress      string
 	LockupTxId         string
+	DepositTxId        string
 	ClaimTxId          string
 	AutoSwap           bool
 	UsedXpub           bool
 	TimeoutBlockHeight uint32
 	BoltzPubkey        string
 	SwapTree           datatypes.JSON
+	ApiUrl             string
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }

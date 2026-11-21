@@ -1054,6 +1054,12 @@ func (g *GreenlightService) GetNewOnchainAddress(ctx context.Context) (string, e
 	return "", fmt.Errorf("unknown default onchain address type")
 }
 
+// GetUnusedOnchainAddress mirrors the CLN backend: CLN's newaddr always
+// hands out a fresh, never-used address, so it satisfies "unused".
+func (g *GreenlightService) GetUnusedOnchainAddress(ctx context.Context) (string, error) {
+	return g.GetNewOnchainAddress(ctx)
+}
+
 func (g *GreenlightService) ResetRouter(key string) error {
 	return errors.New("not implemented")
 }
