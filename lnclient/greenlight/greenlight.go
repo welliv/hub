@@ -1951,6 +1951,16 @@ func confirmationsRequiredFromStatus(status []string) (uint32, *string) {
 		}
 	}
 
+	// Funding is deep enough on our side and channel_ready has been sent; CLN
+	// stays in CHANNELD_AWAITING_LOCKIN until it finishes lock-in. No more
+	// confirmations are needed, so this is not an error.
+	for _, status := range status {
+		if strings.Contains(status, "Channel ready for use") ||
+			strings.Contains(status, "We've confirmed channel ready") {
+			return 0, nil
+		}
+	}
+
 	errNotFound := "Could not find status indicating number of confirmations required"
 	return 0, &errNotFound
 }

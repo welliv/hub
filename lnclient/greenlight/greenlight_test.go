@@ -1476,3 +1476,20 @@ func TestChannelManagement(t *testing.T) {
 		t.Fatalf("UpdateChannel failed: %v", err)
 	}
 }
+
+func TestConfirmationsRequiredFromStatus(t *testing.T) {
+	n, errStr := confirmationsRequiredFromStatus([]string{"CHANNELD_AWAITING_LOCKIN:Funding needs 2 more confirmations to be ready."})
+	if errStr != nil || n != 2 {
+		t.Fatalf("want 2, nil; got %d, %v", n, errStr)
+	}
+	n, errStr = confirmationsRequiredFromStatus([]string{
+		"CHANNELD_AWAITING_LOCKIN:Reconnected, and reestablished.",
+		"CHANNELD_AWAITING_LOCKIN:Channel ready for use.",
+	})
+	if errStr != nil || n != 0 {
+		t.Fatalf("want 0, nil after channel_ready; got %d, %v", n, errStr)
+	}
+	if _, errStr = confirmationsRequiredFromStatus([]string{"CHANNELD_AWAITING_LOCKIN:Sent reestablish, waiting for theirs"}); errStr == nil {
+		t.Fatal("want an error when no confirmation status is present")
+	}
+}
