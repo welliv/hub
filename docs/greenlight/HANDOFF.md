@@ -31,7 +31,7 @@ Honest trade-offs: Blockstream can see payment metadata (channels, amounts, dest
 - Mainnet safety (trial branch): fail closed on unknown network, JIT fee cap, refuse JIT after an LSP fee violation.
 - Docs: `docs/GREENLIGHT.md`, `docs/RUNBOOK.md`, and this folder.
 
-## 4. Branch map (welliv/alby-hub)
+## 4. Branch map (welliv/hub)
 | Branch | Commit | What it is |
 |---|---|---|
 | `feat/greenlight-backend` | this branch | `trial/mainnet` + `docs/greenlight/` (this handoff). Code outside `docs/greenlight/` is identical to `trial/mainnet`, apart from a 3-line pointer at the top of the root `AGENTS.md` (a doc file). |
@@ -79,7 +79,7 @@ The PR descriptions are in [PR-DESCRIPTIONS.md](PR-DESCRIPTIONS.md). Note: the t
 
 ## 8. Quick verification from a fresh clone
 ```bash
-git clone https://github.com/welliv/alby-hub && cd alby-hub && git checkout feat/greenlight-backend
+git clone https://github.com/welliv/hub && cd hub && git checkout feat/greenlight-backend
 git diff --quiet 15b9ef0b HEAD -- . ':(exclude)docs/greenlight' ':(exclude)AGENTS.md' && echo same-code-as-trial
 go test ./lnclient/greenlight/...    # backend unit, adversarial and fuzz-seed tests
 ```

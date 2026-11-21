@@ -21,7 +21,7 @@ No binaries are published. You build from this repo.
 
 ## Quick start (from a fresh clone)
 ```bash
-git clone https://github.com/welliv/alby-hub && cd alby-hub
+git clone https://github.com/welliv/hub && cd hub
 git checkout trial/mainnet && git log -1 --format=%H     # 15b9ef0b6204bc0e83880084e0d25e41499630fe
 # or: git checkout feat/greenlight-backend && git diff --quiet 15b9ef0b HEAD -- . ':(exclude)docs/greenlight' ':(exclude)AGENTS.md' && echo same-code
 export ALBYHUB=$(pwd) KIT=$(pwd)/docs/greenlight/mainnet-trial

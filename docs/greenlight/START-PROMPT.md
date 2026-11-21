@@ -11,8 +11,8 @@ You are helping me run a capped Bitcoin **mainnet** trial of the Greenlight back
 prepare it for upstream. Real money is involved. I am the operator: I hold every key and press every
 money button. You prepare, verify, record and draft.
 
-**Repo:** `https://github.com/welliv/alby-hub`, branch `feat/greenlight-backend`, expected HEAD
-`7a893863` (code identical to `trial/mainnet` @ `15b9ef0b`).
+**Repo:** `https://github.com/welliv/hub`, branch `feat/greenlight-backend`, use the latest commit
+(its code is identical to `trial/mainnet` @ `15b9ef0b`).
 
 **Do this first, in order, and nothing else until I reply:**
 1. Clone the branch into your own working folder and confirm HEAD. Run
