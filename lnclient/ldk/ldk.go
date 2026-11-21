@@ -1770,7 +1770,7 @@ func (ls *LDKService) handleLdkEvent(event *ldk_node.Event) {
 				if details.ChannelId == eventType.ChannelId {
 					fundingTxId = details.FundingTxId
 					fundingTxVout = details.FundingTxVout
-					fundingTxUrl = fmt.Sprintf("https://mempool.space/tx/%s#flow=&vout=%d", fundingTxId, fundingTxVout)
+					fundingTxUrl = fmt.Sprintf("%s/tx/%s#flow=&vout=%d", ls.cfg.GetMempoolUrl(), fundingTxId, fundingTxVout)
 					pendingBalance += details.AmountSat
 				}
 			}
@@ -1778,7 +1778,7 @@ func (ls *LDKService) handleLdkEvent(event *ldk_node.Event) {
 				if details.ChannelId == eventType.ChannelId {
 					fundingTxId = details.FundingTxId
 					fundingTxVout = details.FundingTxVout
-					fundingTxUrl = fmt.Sprintf("https://mempool.space/tx/%s#flow=&vout=%d", fundingTxId, fundingTxVout)
+					fundingTxUrl = fmt.Sprintf("%s/tx/%s#flow=&vout=%d", ls.cfg.GetMempoolUrl(), fundingTxId, fundingTxVout)
 					pendingBalance += details.AmountSat
 				}
 			}

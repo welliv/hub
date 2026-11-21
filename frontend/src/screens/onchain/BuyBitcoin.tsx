@@ -1,6 +1,7 @@
 import React from "react";
 import AppHeader from "src/components/AppHeader";
 import { MempoolAlert } from "src/components/MempoolAlert";
+import { Alert, AlertDescription, AlertTitle } from "src/components/ui/alert";
 import { LoadingButton } from "src/components/ui/custom/loading-button";
 import { Input } from "src/components/ui/input";
 import { Label } from "src/components/ui/label";
@@ -11,7 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "src/components/ui/select";
+import { useInfo } from "src/hooks/useInfo";
 import { useOnchainAddress } from "src/hooks/useOnchainAddress";
+import { isMainnet } from "src/utils/isMainnet";
 import { openLink } from "src/utils/openLink";
 
 const SUPPORTED_CURRENCIES = [
@@ -161,6 +164,7 @@ export default function BuyBitcoin() {
   const [currency, setCurrency] = React.useState("usd");
   const [amount, setAmount] = React.useState("250");
   const { data: onchainAddress } = useOnchainAddress();
+  const { data: info } = useInfo();
 
   async function launch() {
     const url = `https://getalby.com/topup?address=${onchainAddress}&amount=${amount}&currency=${currency}`;
@@ -174,51 +178,63 @@ export default function BuyBitcoin() {
         title="Buy Bitcoin"
         description="Use one of our partner providers to buy bitcoin and deposit it to your on-chain balance."
       />
-      <MempoolAlert />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 lg:gap-10">
-        <div className="flex max-w-lg flex-col gap-4">
-          <div className="grid gap-4">
-            <p className="text-muted-foreground">
-              How much bitcoin would you like to buy?
-            </p>
-            <div className="grid gap-1.5">
-              <Label htmlFor="amount">Enter Amount</Label>
-              <Input
-                name="amount"
-                autoFocus
-                onChange={(e) => setAmount(e.target.value)}
-                value={amount}
-                type="text"
-                placeholder="amount"
-              />
-            </div>
+      {info && !isMainnet(info.network) ? (
+        <Alert>
+          <AlertTitle>Not available on {info.network}</AlertTitle>
+          <AlertDescription>
+            Buying bitcoin is only possible on mainnet. To fund this wallet,
+            send {info.network} coins from a faucet to your on-chain address.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <>
+          <MempoolAlert />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 lg:gap-10">
+            <div className="flex max-w-lg flex-col gap-4">
+              <div className="grid gap-4">
+                <p className="text-muted-foreground">
+                  How much bitcoin would you like to buy?
+                </p>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="amount">Enter Amount</Label>
+                  <Input
+                    name="amount"
+                    autoFocus
+                    onChange={(e) => setAmount(e.target.value)}
+                    value={amount}
+                    type="text"
+                    placeholder="amount"
+                  />
+                </div>
 
-            <div className="grid gap-2">
-              <Label>Currency</Label>
-              <Select
-                name="currency"
-                value={currency}
-                onValueChange={(value) => setCurrency(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUPPORTED_CURRENCIES.map((currency) => (
-                    <SelectItem key={currency.value} value={currency.value}>
-                      {currency.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="grid gap-2">
+                  <Label>Currency</Label>
+                  <Select
+                    name="currency"
+                    value={currency}
+                    onValueChange={(value) => setCurrency(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUPPORTED_CURRENCIES.map((currency) => (
+                        <SelectItem key={currency.value} value={currency.value}>
+                          {currency.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <LoadingButton size="sm" onClick={launch} type="button">
-              Next
-            </LoadingButton>
+                <LoadingButton size="sm" onClick={launch} type="button">
+                  Next
+                </LoadingButton>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

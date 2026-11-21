@@ -3,6 +3,7 @@ import { Outlet } from "react-router";
 import { AppSidebar } from "src/components/AppSidebar";
 import { Banner } from "src/components/Banner";
 import { CommandPalette } from "src/components/CommandPalette";
+import { TestNetworkAlert } from "src/components/TestNetworkAlert";
 import { SidebarInset, SidebarProvider } from "src/components/ui/sidebar";
 import {
   CommandPaletteProvider,
@@ -47,6 +48,7 @@ function AppLayoutInner() {
                   showBanner && "mt-14 md:mt-9" // Banner height is 36px with 1 line (>=md width) and 56px with 2 lines (<md width)
                 )}
               >
+                <TestNetworkAlert />
                 <Outlet />
               </div>
             </SidebarInset>

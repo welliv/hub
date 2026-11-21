@@ -28,5 +28,10 @@ func NewAddressLookup(ctx context.Context, cfg config.Config) (AddressLookup, er
 	if env.EsploraServer != "" {
 		return newEsploraLookup(env.EsploraServer), nil
 	}
+	// the default electrum server is mainnet-only: on other networks use the
+	// network's mempool (esplora) API instead of querying the wrong chain
+	if env.ElectrumServer == config.DefaultElectrumServer && !config.IsMainnet(cfg.GetNetwork()) && env.MempoolApi != "" {
+		return newEsploraLookup(env.MempoolApi), nil
+	}
 	return newElectrumLookup(ctx, env.ElectrumServer, cfg.GetNetwork())
 }

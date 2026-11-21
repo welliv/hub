@@ -46,7 +46,7 @@ type AppConfig struct {
 	LDKAnnouncementAddresses           string `envconfig:"LDK_ANNOUNCEMENT_ADDRESSES"`
 	LDKTransientNetworkGraph           bool   `envconfig:"LDK_TRANSIENT_NETWORK_GRAPH" default:"false"`
 	RebalanceServiceUrl                string `envconfig:"REBALANCE_SERVICE_URL" default:"https://megalithic.me"`
-	MempoolApi                         string `envconfig:"MEMPOOL_API" default:"https://mempool.space/api"`
+	MempoolApi                         string `envconfig:"MEMPOOL_API"` // default depends on NETWORK, see DefaultMempoolApi
 	AlbyClientId                       string `envconfig:"ALBY_OAUTH_CLIENT_ID" default:"J2PbXS1yOf"`
 	AlbyClientSecret                   string `envconfig:"ALBY_OAUTH_CLIENT_SECRET" default:"rABK2n16IWjLTZ9M1uKU"`
 	BaseUrl                            string `envconfig:"BASE_URL"`

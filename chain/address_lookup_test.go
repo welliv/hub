@@ -13,11 +13,17 @@ import (
 // testConfig overrides only the config methods used to create a lookup
 type testConfig struct {
 	config.Config
-	env *config.AppConfig
+	env     *config.AppConfig
+	network string
 }
 
 func (c *testConfig) GetEnv() *config.AppConfig { return c.env }
-func (c *testConfig) GetNetwork() string        { return "bitcoin" }
+func (c *testConfig) GetNetwork() string {
+	if c.network == "" {
+		return "bitcoin"
+	}
+	return c.network
+}
 
 // lookups for a bitcoind user must go to their own node, not another server
 func TestNewAddressLookup_Bitcoind(t *testing.T) {
@@ -47,4 +53,20 @@ func TestNewAddressLookup_Esplora(t *testing.T) {
 	require.NoError(t, err)
 	defer lookup.Close()
 	assert.IsType(t, &esploraLookup{}, lookup)
+}
+
+// the default electrum server is mainnet-only, so on testnet lookups go to
+// the network's mempool (esplora) API instead
+func TestNewAddressLookup_TestnetDefaultElectrumUsesMempoolApi(t *testing.T) {
+	cfg := &testConfig{network: "testnet", env: &config.AppConfig{
+		ElectrumServer: config.DefaultElectrumServer,
+		MempoolApi:     "https://mempool.space/testnet/api",
+	}}
+
+	lookup, err := NewAddressLookup(context.Background(), cfg)
+
+	require.NoError(t, err)
+	defer lookup.Close()
+	require.IsType(t, &esploraLookup{}, lookup)
+	assert.Equal(t, "https://mempool.space/testnet/api", lookup.(*esploraLookup).serverURL)
 }

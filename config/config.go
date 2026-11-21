@@ -47,6 +47,7 @@ func NewConfig(env *AppConfig, db *gorm.DB) (*config, error) {
 func (cfg *config) init(env *AppConfig) error {
 	cfg.Env = env
 	cfg.Env.applyDeprecatedEnv()
+	cfg.Env.applyNetworkDefaults()
 
 	if cfg.Env.Relay != "" {
 		err := cfg.SetUpdate("Relay", cfg.Env.Relay, "")
@@ -238,6 +239,9 @@ func (cfg *config) GetNetwork() string {
 
 func (cfg *config) GetMempoolUrl() string {
 	mempoolApiUrl := cfg.GetEnv().MempoolApi
+	if mempoolApiUrl == "" {
+		mempoolApiUrl = DefaultMempoolApi(cfg.GetNetwork())
+	}
 	return strings.TrimSuffix(mempoolApiUrl, "/api")
 }
 
