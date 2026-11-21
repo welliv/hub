@@ -26,6 +26,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
 	"github.com/btcsuite/btcd/btcec/v2"
@@ -127,7 +128,14 @@ func NewGreenlightService(ctx context.Context, eventPublisher events.EventPublis
 
 	creds := credentials.NewTLS(tlsConfig)
 
-	conn, err := grpc.NewClient(nodeURI, grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(deadlineInterceptor))
+	conn, err := grpc.NewClient(nodeURI,
+		grpc.WithTransportCredentials(creds),
+		grpc.WithUnaryInterceptor(deadlineInterceptor),
+		// A silently dropped connection (NAT/proxy idle timeout, node moved)
+		// otherwise leaves every RPC timing out until the OS gives up on the
+		// socket; pings detect it and the channel reconnects.
+		grpc.WithKeepaliveParams(greenlightKeepalive),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to greenlight gRPC: %w", err)
 	}
@@ -187,6 +195,12 @@ func NewGreenlightService(ctx context.Context, eventPublisher events.EventPublis
 	svc.startHealthWatchdog(ctx)
 
 	return svc, nil
+}
+
+var greenlightKeepalive = keepalive.ClientParameters{
+	Time:                30 * time.Second,
+	Timeout:             10 * time.Second,
+	PermitWithoutStream: true,
 }
 
 func normalizeNodeURI(uri string) string {
