@@ -201,16 +201,7 @@ func NewLDKService(ctx context.Context, cfg config.Config, eventPublisher events
 		builder.SetLiquiditySourceLsps2(lsps2Pubkey, lsps2Address, nil)
 	}
 
-	switch network {
-	case "signet":
-		builder.SetNetwork(ldk_node.NetworkSignet)
-	case "regtest":
-		builder.SetNetwork(ldk_node.NetworkRegtest)
-	case "testnet":
-		builder.SetNetwork(ldk_node.NetworkSignet)
-	default:
-		builder.SetNetwork(ldk_node.NetworkBitcoin)
-	}
+	builder.SetNetwork(ldkNetwork(network))
 
 	var chainSource string
 	if cfg.GetEnv().BitcoindRpcHost != "" {
@@ -2976,4 +2967,20 @@ func parseLiquiditySourceLsps2(lsps2Address string) (pubkey string, address stri
 	}
 
 	return pubkey, address
+}
+
+// ldkNetwork maps the hub NETWORK value to an LDK network. "testnet" is
+// testnet3 (matching the README's testnet settings and the hub's own chain
+// params); mutinynet is configured as "signet".
+func ldkNetwork(network string) ldk_node.Network {
+	switch network {
+	case "signet":
+		return ldk_node.NetworkSignet
+	case "regtest":
+		return ldk_node.NetworkRegtest
+	case "testnet", "testnet3":
+		return ldk_node.NetworkTestnet
+	default:
+		return ldk_node.NetworkBitcoin
+	}
 }
