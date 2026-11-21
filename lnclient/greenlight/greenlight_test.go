@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -53,6 +54,8 @@ type mockNode struct {
 	pays         []*clngrpc.ListpaysPays
 	xpayCalls    int
 	xpayPreimage []byte // preimage Xpay reports (tests set sha256 = invoice hash)
+	bkprErr      error  // when set, BkprListAccountEvents fails (Greenlight has no bookkeeper)
+	walletTxs    *clngrpc.ListtransactionsResponse
 
 	// hostile-node hooks (adversarial_test.go)
 	fundsOverride    *clngrpc.ListfundsResponse
@@ -384,6 +387,9 @@ func (m *mockNode) ListFunds(ctx context.Context, req *clngrpc.ListfundsRequest)
 }
 
 func (m *mockNode) BkprListAccountEvents(ctx context.Context, req *clngrpc.BkprlistaccounteventsRequest) (*clngrpc.BkprlistaccounteventsResponse, error) {
+	if m.bkprErr != nil {
+		return nil, m.bkprErr
+	}
 	blockheight := uint32(840000)
 	return &clngrpc.BkprlistaccounteventsResponse{
 		Events: []*clngrpc.BkprlistaccounteventsEvents{
@@ -966,6 +972,56 @@ func TestListOnchainTransactions(t *testing.T) {
 	}
 	if txs[0].AmountSat != 1000 {
 		t.Errorf("expected 1000 sats, got %d", txs[0].AmountSat)
+	}
+}
+
+func (m *mockNode) ListTransactions(ctx context.Context, req *clngrpc.ListtransactionsRequest) (*clngrpc.ListtransactionsResponse, error) {
+	if m.walletTxs != nil {
+		return m.walletTxs, nil
+	}
+	return &clngrpc.ListtransactionsResponse{}, nil
+}
+
+// Greenlight has no bookkeeper plugin: the list is built from the wallet.
+func TestListOnchainTransactions_NoBookkeeperFallback(t *testing.T) {
+	node := newMockNode()
+	node.bkprErr = errors.New(`Error calling method BkprListAccountEvents: RpcError { code: Some(-32601), message: "Unknown command 'bkpr-listaccountevents'", data: None }`)
+	fundingTx := "1111111111111111111111111111111111111111111111111111111111111111"
+	sendTx := "2222222222222222222222222222222222222222222222222222222222222222"
+	node.fundsOverride = &clngrpc.ListfundsResponse{Outputs: []*clngrpc.ListfundsOutputs{
+		{Txid: mustHex(fundingTx), Output: 1, AmountMsat: &clngrpc.Amount{Msat: 50_000_000}, Status: clngrpc.ListfundsOutputs_SPENT},
+		{Txid: mustHex(sendTx), Output: 1, AmountMsat: &clngrpc.Amount{Msat: 9_696_000}, Status: clngrpc.ListfundsOutputs_UNCONFIRMED},
+	}}
+	node.walletTxs = &clngrpc.ListtransactionsResponse{Transactions: []*clngrpc.ListtransactionsTransactions{
+		{Hash: mustHex(fundingTx), Blockheight: 839990,
+			Inputs:  []*clngrpc.ListtransactionsTransactionsInputs{{Txid: mustHex("33" + fundingTx[2:]), Index: 0}},
+			Outputs: []*clngrpc.ListtransactionsTransactionsOutputs{{Index: 0, AmountMsat: &clngrpc.Amount{Msat: 1}}, {Index: 1, AmountMsat: &clngrpc.Amount{Msat: 50_000_000}}}},
+		{Hash: mustHex(sendTx),
+			Inputs:  []*clngrpc.ListtransactionsTransactionsInputs{{Txid: mustHex(fundingTx), Index: 1}},
+			Outputs: []*clngrpc.ListtransactionsTransactionsOutputs{{Index: 0, AmountMsat: &clngrpc.Amount{Msat: 40_000_000}}, {Index: 1, AmountMsat: &clngrpc.Amount{Msat: 9_696_000}}}},
+		{Hash: mustHex("44" + fundingTx[2:])}, // not ours
+	}}
+	svc, cleanup := newTestService(t, node)
+	defer cleanup()
+
+	txs, err := svc.ListOnchainTransactions(context.Background())
+	if err != nil {
+		t.Fatalf("ListOnchainTransactions failed: %v", err)
+	}
+	if len(txs) != 2 {
+		t.Fatalf("expected 2 txs, got %d: %+v", len(txs), txs)
+	}
+	byID := map[string]lnclient.OnchainTransaction{}
+	for _, tx := range txs {
+		byID[tx.TxId] = tx
+	}
+	in, out := byID[fundingTx], byID[sendTx]
+	if in.Type != "incoming" || in.AmountSat != 50_000 || in.State != "confirmed" || in.NumConfirmations == 0 {
+		t.Errorf("unexpected incoming tx: %+v", in)
+	}
+	// 50,000 in - 9,696 change = 40,304 (40,000 sent + 304 fee)
+	if out.Type != "outgoing" || out.AmountSat != 40_304 || out.State != "unconfirmed" {
+		t.Errorf("unexpected outgoing tx: %+v", out)
 	}
 }
 

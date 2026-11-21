@@ -586,6 +586,11 @@ func (g *GreenlightService) ListOnchainTransactions(ctx context.Context) ([]lncl
 	}
 	bkpr, err := g.client.BkprListAccountEvents(ctx, req)
 	if err != nil {
+		// Greenlight nodes do not run the bookkeeper plugin; build the list
+		// from the wallet's own transactions instead.
+		if strings.Contains(err.Error(), "Unknown command") {
+			return g.listOnchainTransactionsFromWallet(ctx)
+		}
 		return nil, fmt.Errorf("bkprlistaccountevents failed: %w", err)
 	}
 
@@ -634,6 +639,80 @@ func (g *GreenlightService) ListOnchainTransactions(ctx context.Context) ([]lncl
 		return transactions[i].CreatedAt > transactions[j].CreatedAt
 	})
 
+	return transactions, nil
+}
+
+// listOnchainTransactionsFromWallet derives on-chain wallet transactions from
+// listtransactions + listfunds (including spent outputs): a transaction that
+// spends wallet outputs is outgoing (amount = wallet inputs - wallet outputs,
+// so it includes the fee), otherwise it is incoming (amount = wallet outputs).
+func (g *GreenlightService) listOnchainTransactionsFromWallet(ctx context.Context) ([]lnclient.OnchainTransaction, error) {
+	spent := true
+	funds, err := g.client.ListFunds(ctx, &clngrpc.ListfundsRequest{Spent: &spent})
+	if err != nil {
+		return nil, fmt.Errorf("listfunds failed: %w", err)
+	}
+	txs, err := g.client.ListTransactions(ctx, &clngrpc.ListtransactionsRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("listtransactions failed: %w", err)
+	}
+	info, err := g.client.Getinfo(ctx, &clngrpc.GetinfoRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("getinfo failed: %w", err)
+	}
+
+	walletOutputs := make(map[string]uint64) // "txid:vout" -> msat
+	for _, o := range funds.Outputs {
+		if o == nil || o.AmountMsat == nil {
+			continue
+		}
+		walletOutputs[fmt.Sprintf("%x:%d", o.Txid, o.Output)] = o.AmountMsat.Msat
+	}
+
+	now := uint64(time.Now().Unix())
+	transactions := make([]lnclient.OnchainTransaction, 0, len(txs.Transactions))
+	for _, tx := range txs.Transactions {
+		if tx == nil {
+			continue
+		}
+		txid := hex.EncodeToString(tx.Hash)
+		var inMsat, outMsat uint64
+		for _, in := range tx.Inputs {
+			inMsat += walletOutputs[fmt.Sprintf("%x:%d", in.Txid, in.Index)]
+		}
+		for _, out := range tx.Outputs {
+			outMsat += walletOutputs[fmt.Sprintf("%s:%d", txid, out.Index)]
+		}
+		if inMsat == 0 && outMsat == 0 {
+			continue
+		}
+
+		t := lnclient.OnchainTransaction{TxId: txid, Type: "incoming", AmountSat: outMsat / 1000, State: "unconfirmed", CreatedAt: now}
+		if inMsat > 0 {
+			t.Type = "outgoing"
+			if inMsat > outMsat {
+				t.AmountSat = (inMsat - outMsat) / 1000
+			} else {
+				t.AmountSat = 0
+			}
+		}
+		if tx.Blockheight > 0 {
+			t.State = "confirmed"
+			if info.Blockheight >= tx.Blockheight {
+				t.NumConfirmations = info.Blockheight - tx.Blockheight + 1
+			}
+			// listtransactions has no timestamp: estimate from depth (10 min/block)
+			age := uint64(t.NumConfirmations) * 600
+			if age < now {
+				t.CreatedAt = now - age
+			}
+		}
+		transactions = append(transactions, t)
+	}
+
+	sort.SliceStable(transactions, func(i, j int) bool {
+		return transactions[i].CreatedAt > transactions[j].CreatedAt
+	})
 	return transactions, nil
 }
 
