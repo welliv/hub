@@ -42,33 +42,46 @@ testnet" notice, and Buy Bitcoin explains that it is mainnet-only.
 - Receiving without a channel uses Blockstream's testnet LSP (LSPS2 JIT, 2,500 sat opening fee,
   minimum 2,501 sat). The payer needs a route to that LSP.
 
-## Expected results and known limits (2026-11-21, UTC)
+## Results of the testnet run (2026-11-21/22, UTC)
 
 | Area | Greenlight | LDK |
 |---|---|---|
 | Setup, unlock, restart, backup export, restore into a fresh hub | works | works |
 | Network label, explorer links, on-chain address, balances | works | works |
-| On-chain send and receive | works | works |
-| Invoices, lookup, list, NWC apps, budgets, pay-only scopes | works | works |
+| On-chain send and receive, send-all sweep | works (CLN keeps a 546 sat emergency reserve while an anchor channel exists) | works |
+| Invoices, lookup, list, NWC apps, budgets, pay-only scopes (RESTRICTED) | works | works |
+| NWC over-budget payment → QUOTA_EXCEEDED | works | works |
+| NWC notifications | subscribed, no payment to notify | works (payment_sent delivered) |
 | Sign message | not supported by design (Greenlight signer, issue #739) | works |
 | Hold invoices over NWC | not offered | works |
-| Lightning payments | blocked on the hosted side, see below | works (keysend tested) |
+| Open channel (100k to a testnet CLN node) | funding confirms, both sides send channel_ready, but the hosted node stays in CHANNELD_AWAITING_LOCKIN (see below) | works (30k, active after 3 confirmations) |
+| Cooperative close | works (from AWAITING_LOCKIN) | waits on an in-flight HTLC |
+| Pay invoice / keysend / NWC pay | not testable: no locked-in channel; on a syncing node Xpay fails with "no response from lightningd" (#751) | keysend works; invoice payments work when a route exists |
+| JIT receive (LSPS2, LSP 034066…) | invoice created, 2,500 sat fee | invoice created (testnet LSPS2 default now built in), 2,500 sat fee, min 2,501 sat |
+| JIT payment | no route: the LSP has no public channels on testnet | same |
 
 Hosted-side blockers seen on testnet:
+- **Channel never locks in.** A 100k channel from a freshly registered node confirmed (13+
+  confirmations, the wallet sees it), the peer sent `channel_ready` and the node's own channeld
+  reports "Channel ready for use", yet lightningd stayed in `CHANNELD_AWAITING_LOCKIN` and kept
+  re-broadcasting the funding transaction ("Transaction outputs already in utxo set"). Restarting
+  the hosted node twice did not help. Before the first restart the peer never answered the
+  channel reestablish. The hub now shows such a channel as opening instead of logging
+  "Could not find status indicating number of confirmations required".
 - **Old nodes start far behind the chain.** A node that was idle for weeks replays blocks at about
   5 blocks/s and reports "node syncing" until it reaches the tip (about 200,000 blocks, roughly 10
-  hours, only while the hub is running). It cannot route payments meanwhile. A freshly registered
-  node starts at the tip.
-- **`Xpay` returns "no response from lightningd"** (Blockstream/greenlight#751). It still
-  reproduces on a node that is syncing. The hub keeps such a payment pending and reconciles it later,
-  so the budget is not released early.
-- **The testnet LSP has no public channels** reachable from the faucet node's part of the graph, and
-  it refuses channels below 5 BTC, so a JIT receive from another testnet wallet usually finds no
-  route.
+  hours, only while the hub is running). It cannot route payments meanwhile.
+- **`Xpay` returns "no response from lightningd"** (Blockstream/greenlight#751) on a syncing node.
+  Not yet tested on a synced node with an active channel.
+- **No inbound connections.** A Greenlight node is not announced, so another node cannot open a
+  channel to it; channels to it come from its own opens or from the LSP.
+- **The testnet LSP has no public channels**, and refuses channels below 5 BTC, so JIT receives
+  find no route. ACINQ's testnet node requires 400,000 sat per channel.
 
 ## Steps that still need funds
 
-1. Fund a freshly registered Greenlight hub with at least 20,000 testnet sat.
+1. Fund a freshly registered Greenlight hub with at least 20,000 testnet sat (more for peers with
+   high minimums).
 2. Open a channel from it to a well-connected testnet node, for example the faucet node
    `039e7672537f2c742141dfadfd1b2e9a4871f9c064873347ab0fc0671f73f093f8@172.96.9.5:9735`.
 3. Once the channel is active: pay an invoice, receive, send a keysend, pay through a budgeted NWC
