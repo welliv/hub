@@ -75,6 +75,7 @@ The PR descriptions are in [PR-DESCRIPTIONS.md](PR-DESCRIPTIONS.md). Note: the t
 | ONE-PAGER.md | The pitch: why, the agent/app angle, what Blockstream can and can't see, status, asks |
 | AUDIT-SUMMARY.md | Findings, fixes and tests; the 9 corrections; known limits |
 | PR-DESCRIPTIONS.md | Drafts for the 4 upstream PRs (none opened) |
+| TESTNET.md | Running the build on Greenlight testnet: settings, explorer links, faucets, known limits |
 | mainnet-trial/ | The trial kit: plan (including step 7A, L402), checklist, risks, evidence template, setup/build scripts, tools (`nwc.mjs`, `l402.mjs`, `l402-mock.mjs`, `redact.py`) |
 
 ## 8. Quick verification from a fresh clone
