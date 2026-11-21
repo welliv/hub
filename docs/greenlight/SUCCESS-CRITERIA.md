@@ -11,7 +11,7 @@ Thresholds marked *(proposed)* are not in the existing docs and need the operato
 ### A0. Preconditions (all PASS before step 1; any FAIL = NO-GO)
 | ID | Criterion | Measured by |
 |---|---|---|
-| A0.1 | Key-holding binary built by the operator from a clean checkout; `BUILDINFO.txt` commit is `15b9ef0b6204bc0e83880084e0d25e41499630fe`, or a `feat/greenlight-backend` commit for which `git diff --quiet 15b9ef0b HEAD -- . ':(exclude)docs/greenlight' ':(exclude)AGENTS.md'` succeeds | BUILDINFO.txt, git output |
+| A0.1 | Key-holding binary built by the operator from a clean checkout; `BUILDINFO.txt` commit is a `feat/greenlight-backend` commit for which `git merge-base --is-ancestor 15b9ef0b <commit>` succeeds | BUILDINFO.txt, git output |
 | A0.2 | glcli built from Blockstream/greenlight `15b22cf0`; `glcli signer run --help` shows `--backup-path` | command output, glcli sha256 recorded |
 | A0.3 | `go test ./lnclient/greenlight/...` passes on the built commit | test output |
 | A0.4 | `check.sh` prints `CHECK PASSED` (loopback only, dirs 700, no group/other file access) | check.sh output |

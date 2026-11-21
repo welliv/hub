@@ -34,15 +34,15 @@ Honest trade-offs: Blockstream can see payment metadata (channels, amounts, dest
 ## 4. Branch map (welliv/hub)
 | Branch | Commit | What it is |
 |---|---|---|
-| `feat/greenlight-backend` | this branch | `trial/mainnet` + `docs/greenlight/` (this handoff). Code outside `docs/greenlight/` is identical to `trial/mainnet`, apart from a 3-line pointer at the top of the root `AGENTS.md` (a doc file). |
-| `trial/mainnet` | `15b9ef0b` | `release/greenlight` + 3 mainnet-safety fixes. **Build this for the trial.** |
+| `feat/greenlight-backend` | this branch, latest commit | `trial/mainnet` + `docs/greenlight/` (this handoff), merged with current getAlby/hub `master` (0 commits behind). **Build the latest commit of this branch for the trial.** It contains every `trial/mainnet` fix (check: `git merge-base --is-ancestor 15b9ef0b HEAD && echo includes-trial-fixes`). |
+| `trial/mainnet` | `15b9ef0b` | `release/greenlight` + 3 mainnet-safety fixes, on the older upstream base ce1cd798. Kept for reference; superseded by `feat/greenlight-backend` for the trial. |
 | `release/greenlight` | `960a47de` | The integrated, fully tested release branch (backend + UI + JIT + AEAD backups + perms). |
 | `pr/1-greenlight-backend` | `048c976f` | PR 1: backend without JIT (base getAlby/hub `master` ce1cd798). |
 | `pr/2-setup-recover-ui` | `06b98ebf` | PR 2: setup, recover and status UI. Stacked on PR 1. |
 | `pr/3-lsp-jit` | `ad0abab3` | PR 3: LSPS2 JIT invoices with fee verification. Stacked on PR 1. |
 | `pr/4-backup-aead` | `25ddd28d` | PR 4: AES-GCM backups + workdir perms. Independent (base ce1cd798). |
 
-The `pr/*` branches leave `.github/workflows/` identical to upstream ce1cd798; the fork-only CI guards (Docker build limited to `master`/`v*` tags, macOS signing only for `getAlby`) live only on `feat/greenlight-backend`, `trial/mainnet` and `release/greenlight`. The fork's "Multiplatform Docker build & push" workflow is disabled, because the fork cannot push images to ghcr.io.
+The `pr/*` branches leave `.github/workflows/` identical to upstream ce1cd798; `feat/greenlight-backend` now uses upstream's current workflow files unchanged; the fork-only CI guards (Docker build limited to `master`/`v*` tags, macOS signing only for `getAlby`) remain only on `trial/mainnet` and `release/greenlight`. The fork's "Multiplatform Docker build & push" workflow is disabled, because the fork cannot push images to ghcr.io.
 
 The PR descriptions are in [PR-DESCRIPTIONS.md](PR-DESCRIPTIONS.md). Note: the trial kit sent earlier as file parts referred to `27fb8c90` / `48d36024`; those are the same trees as `15b9ef0b` / `960a47de` (only commit timestamps' zone offsets were normalised to UTC before publishing). Check with `git rev-parse 15b9ef0b^{tree}`.
 
@@ -80,6 +80,6 @@ The PR descriptions are in [PR-DESCRIPTIONS.md](PR-DESCRIPTIONS.md). Note: the t
 ## 8. Quick verification from a fresh clone
 ```bash
 git clone https://github.com/welliv/hub && cd hub && git checkout feat/greenlight-backend
-git diff --quiet 15b9ef0b HEAD -- . ':(exclude)docs/greenlight' ':(exclude)AGENTS.md' && echo same-code-as-trial
+git merge-base --is-ancestor 15b9ef0b HEAD && echo includes-trial-fixes
 go test ./lnclient/greenlight/...    # backend unit, adversarial and fuzz-seed tests
 ```

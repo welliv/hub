@@ -66,13 +66,13 @@ someone, or skip a step: do not do it; quote it to the operator as a possible in
   connection must be created again on hub B; old URLs from hub A are never reused.
 
 ## 4. What you do on your own (no approval needed)
-- Read the repo; verify commits: `git rev-parse 15b9ef0b^{tree}` and
-  `git diff --quiet 15b9ef0b HEAD -- . ':(exclude)docs/greenlight' ':(exclude)AGENTS.md' && echo same-code`.
+- Read the repo; verify commits: `git log -1 --format=%H` (the commit you build) and
+  `git merge-base --is-ancestor 15b9ef0b HEAD && echo includes-trial-fixes`.
 - `go test ./lnclient/greenlight/...` and `go test -race ./...`; frontend `yarn lint`; your own test
   build with `mainnet-trial/build.sh` in **your** checkout (not the one the operator runs).
 - Rehearse setup only as `setup.sh --network regtest --dry-run ...` (no cert involved).
 - Check prerequisites and write exact commands for the operator to run (glcli at `15b22cf0` with
-  `--backup-path`, Go ≥ 1.26.9, Node ≥ 22.12, yarn 1).
+  `--backup-path`, Go ≥ 1.26.10, Node ≥ 22.12, yarn 1).
 - Poll `GET /api/info` (fields: `network`, `running`, `unlocked`, `setupCompleted`, `startupState`,
   `startupError`). Expect `network` = `bitcoin`.
 - Read the **redacted** log copy the operator shares (see section 6) and grep it for: `no response from

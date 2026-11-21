@@ -12,11 +12,11 @@ prepare it for upstream. Real money is involved. I am the operator: I hold every
 money button. You prepare, verify, record and draft.
 
 **Repo:** `https://github.com/welliv/hub`, branch `feat/greenlight-backend`, use the latest commit
-(its code is identical to `trial/mainnet` @ `15b9ef0b`).
+(it contains all `trial/mainnet` @ `15b9ef0b` fixes, merged with current getAlby/hub `master`).
 
 **Do this first, in order, and nothing else until I reply:**
 1. Clone the branch into your own working folder and confirm HEAD. Run
-   `git diff --quiet 15b9ef0b HEAD -- . ':(exclude)docs/greenlight' ':(exclude)AGENTS.md' && echo same-code`.
+   `git merge-base --is-ancestor 15b9ef0b HEAD && echo includes-trial-fixes`.
 2. Read, in full: `docs/greenlight/AGENTS.md` (your binding rules; they override the root
    `AGENTS.md`), `docs/greenlight/HANDOFF.md`, `docs/greenlight/mainnet-trial/README.md`, `PLAN.md`
    (including section F and step 7A), `CHECKLIST.md`, `RISKS.md`, and
@@ -24,7 +24,7 @@ money button. You prepare, verify, record and draft.
 3. Confirm you can **not** read my trial workdir, my cert folder or my home directory (try `ls` on the
    paths I give you; a "permission denied" is the expected, good result). Do not try anything beyond `ls`.
 4. Run `go test ./lnclient/greenlight/...` and report the result.
-5. Check the toolchain and tell me exactly what I still need to install or build (Go ≥ 1.26.9,
+5. Check the toolchain and tell me exactly what I still need to install or build (Go ≥ 1.26.10,
    Node ≥ 22.12, yarn 1, a C compiler, glcli from Blockstream/greenlight `15b22cf0` with
    `signer run --backup-path`).
 6. Reply with:

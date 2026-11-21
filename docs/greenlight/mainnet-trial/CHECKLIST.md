@@ -5,7 +5,7 @@ Tick every box. **Any unticked GO item = NO-GO.** Any ABORT item during the tria
 ## Before setup
 - [ ] My own machine, encrypted disk, screen lock, can stay online and awake ~48 h
 - [ ] OS: Linux, macOS, or WSL2 Ubuntu on Windows
-- [ ] Hub self-built with `build.sh` from `trial/mainnet` @ `15b9ef0b` (or `feat/greenlight-backend` with identical code outside `docs/greenlight` and the root `AGENTS.md` note); `BUILDINFO.txt` shows the commit
+- [ ] Hub self-built with `build.sh` from the latest `feat/greenlight-backend` commit (`git merge-base --is-ancestor 15b9ef0b HEAD` succeeds); `BUILDINFO.txt` shows the commit
 - [ ] glcli built from Blockstream/greenlight `15b22cf0`; `signer run --help` shows `--backup-path`
 - [ ] Developer certificate files in a private folder; never pasted or shown anywhere
 - [ ] No other Alby Hub or glcli signer running (`pgrep -fa "glcli.*signer run"` is empty)

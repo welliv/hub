@@ -22,17 +22,17 @@ No binaries are published. You build from this repo.
 ## Quick start (from a fresh clone)
 ```bash
 git clone https://github.com/welliv/hub && cd hub
-git checkout trial/mainnet && git log -1 --format=%H     # 15b9ef0b6204bc0e83880084e0d25e41499630fe
-# or: git checkout feat/greenlight-backend && git diff --quiet 15b9ef0b HEAD -- . ':(exclude)docs/greenlight' ':(exclude)AGENTS.md' && echo same-code
+git checkout feat/greenlight-backend && git log -1 --format=%H   # record this commit
+git merge-base --is-ancestor 15b9ef0b HEAD && echo includes-trial-fixes
 export ALBYHUB=$(pwd) KIT=$(pwd)/docs/greenlight/mainnet-trial
 # glcli 0.1.3 from Blockstream's repo at the tested commit (crates.io 0.1.1 is too old):
 cargo install --locked --git https://github.com/Blockstream/greenlight --rev 15b22cf0f9b07bd0d343133d593c92b78addc403 gl-cli
-$KIT/build.sh . ../hub-bin                               # Go >= 1.26.9, Node >= 22.12, yarn 1, a C compiler
+$KIT/build.sh . ../hub-bin                               # Go >= 1.26.10, Node >= 22.12, yarn 1, a C compiler
 $KIT/setup.sh --bin-dir ../hub-bin --cert-dir /path/to/your/devcert --dry-run
 ```
 Then read PLAN.md and CHECKLIST.md and start at step 0. If a coding agent helps, start with [../AGENTS.md](../AGENTS.md) and [../START-PROMPT.md](../START-PROMPT.md). Step 1.3 registers the node before any money goes in and settles whether the developer certificate works on mainnet.
 
-Branch commits (code identical to what the kit was reviewed against):
+Build from the latest `feat/greenlight-backend` commit. Earlier reference commits (the kit was first reviewed against these; `feat/greenlight-backend` contains them plus current getAlby/hub `master`):
 | Branch | Commit |
 |---|---|
 | trial/mainnet | 15b9ef0b6204bc0e83880084e0d25e41499630fe |

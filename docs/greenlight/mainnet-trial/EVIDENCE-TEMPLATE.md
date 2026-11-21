@@ -11,7 +11,7 @@
 ## 2. What was tested
 | Item | Value |
 |---|---|
-| Hub source | `trial/mainnet` @ `15b9ef0b6204bc0e83880084e0d25e41499630fe` (based on `release/greenlight` @ `960a47de`), or the `feat/greenlight-backend` commit you built: … |
+| Hub source | the `feat/greenlight-backend` commit you built (contains `trial/mainnet` @ `15b9ef0b`): … |
 | Hub binary sha256 | … (self-built; from `SHA256SUMS`) |
 | glcli | gl-cli 0.1.3 @ Blockstream/greenlight `15b22cf0`, sha256 … |
 | Hosted node version (`getinfo.version`) | … |
