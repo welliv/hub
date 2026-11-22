@@ -11,6 +11,7 @@ import ExternalLink from "src/components/ExternalLink";
 import { FormattedBitcoinAmount } from "src/components/FormattedBitcoinAmount";
 import Loading from "src/components/Loading";
 import { MempoolAlert } from "src/components/MempoolAlert";
+import { Alert, AlertDescription } from "src/components/ui/alert";
 import { Button } from "src/components/ui/button";
 import { Checkbox } from "src/components/ui/checkbox";
 import { ExternalLinkButton } from "src/components/ui/custom/external-link-button";
@@ -108,6 +109,12 @@ function NewChannelInternal({
       : undefined;
   }, [_channelPeerSuggestions]);
 
+  // No LSPS1 seller exists on testnet in Alby's catalog. Make that visible
+  // and route the user to the on-chain path, which has real testnet peers.
+  const hasLsps1ForNetwork = channelPeerSuggestions?.some(
+    (peer) => peer.network === network && peer.type === "LSPS1"
+  );
+
   function setPublic(isPublic: boolean) {
     setOrder((current) => ({
       ...current,
@@ -185,7 +192,9 @@ function NewChannelInternal({
         if (!bestPartner) {
           toast.error("No channel partner found", {
             description:
-              "No ideal channel partner found. Please choose from the advanced options to continue",
+              network === "testnet"
+                ? "Testnet has no LSPS1 channel seller. Use Open Channel with On-Chain and pick a listed testnet peer."
+                : "No ideal channel partner found. Please choose from the advanced options to continue",
           });
           return;
         }
@@ -257,6 +266,18 @@ function NewChannelInternal({
             Learn more
           </ExternalLink>
         </p>
+        {!hasLsps1ForNetwork && (
+          <Alert>
+            <InfoIcon className="size-4" />
+            <AlertDescription>
+              No LSPS1 channel seller is available on {network}. Use{" "}
+              <Link to="/channels/outgoing" className="underline">
+                Open Channel with On-Chain
+              </Link>{" "}
+              instead — testnet peers are pre-listed there.
+            </AlertDescription>
+          </Alert>
+        )}
         <form onSubmit={onSubmit} className="flex flex-col gap-5 flex-1">
           <div className="grid gap-1.5">
             <TooltipProvider>
