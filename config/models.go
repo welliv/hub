@@ -77,6 +77,9 @@ type AppConfig struct {
 	GreenlightNobodyCrt     string `envconfig:"GL_NOBODY_CRT"`
 	GreenlightNobodyKey     string `envconfig:"GL_NOBODY_KEY"`
 	GreenlightGlcliPath     string `envconfig:"GREENLIGHT_GLCLI_PATH"`
+	// Optional pinned SHA-256 of glcli. The signer reads hsm_secret, so a
+	// mismatched binary must fail closed. Empty disables the check.
+	GreenlightGlcliSHA256 string `envconfig:"GREENLIGHT_GLCLI_SHA256"`
 	// Optional hard cap on the LSPS2 opening fee the hub accepts for a JIT
 	// invoice (sats). 0 = no cap beyond "fee must be below the amount".
 	GreenlightJitMaxFeeSat uint64 `envconfig:"GREENLIGHT_JIT_MAX_FEE_SAT"`

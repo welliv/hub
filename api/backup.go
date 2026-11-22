@@ -23,6 +23,26 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
+// maxBackupSize bounds the untrusted upload accepted by /api/restore. Real
+// backups are a few MB after ResetRouter; 256 MiB is a generous ceiling that
+// still prevents unbounded memory use on a hostile request.
+const maxBackupSize = 256 << 20
+
+func readBackupBytes(r io.Reader) ([]byte, error) {
+	return readBytesLimit(r, maxBackupSize)
+}
+
+func readBytesLimit(r io.Reader, limit int64) ([]byte, error) {
+	raw, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(raw)) > limit {
+		return nil, errors.New("backup file too large")
+	}
+	return raw, nil
+}
+
 // zipMagic is the ZIP local file header signature "PK\x03\x04" — the first
 // four bytes of every ZIP file, and therefore of every archive produced by
 // CreateBackup. decryptingReader uses it to detect which cipher scheme the
@@ -510,7 +530,7 @@ func (nopCloser) Close() error { return nil }
 func decryptingReader(r io.Reader, password string) (io.Reader, error) {
 	// Read the whole ciphertext: AEAD needs the tag; stream schemes still
 	// work because we trial-decrypt prefixes against the ZIP magic.
-	raw, err := io.ReadAll(r)
+	raw, err := readBackupBytes(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read backup: %w", err)
 	}

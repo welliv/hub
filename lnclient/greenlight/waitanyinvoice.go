@@ -147,11 +147,17 @@ func (g *GreenlightService) waitForInvoices(ctx context.Context) {
 			"amount_msat":  tx.AmountMsat,
 		}).Info("Invoice paid")
 
-		g.publish(&events.Event{
-			Event:      "nwc_lnclient_payment_received",
-			Properties: tx,
-		})
+		if validIncomingPreimage(tx) {
+			g.publish(&events.Event{
+				Event:      "nwc_lnclient_payment_received",
+				Properties: tx,
+			})
+		} else {
+			logger.Logger.WithField("payment_hash", tx.PaymentHash).Error("Hosted node reported incoming invoice with mismatched preimage; not crediting")
+		}
 
+		// Advance the cursor even on a rejected preimage: replaying will not
+		// change the node's claim, and we must not stall the pump.
 		lastPayIndex = *resp.PayIndex
 		if err := g.savePumpState(lastPayIndex); err != nil {
 			logger.Logger.WithError(err).Error("Failed to persist pump state")

@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -37,6 +39,25 @@ func TestCheckGlcliCompat(t *testing.T) {
 	}
 }
 
+func TestVerifyBinarySHA256(t *testing.T) {
+	bin := filepath.Join(t.TempDir(), "glcli")
+	content := []byte("fake glcli binary")
+	if err := os.WriteFile(bin, content, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(content)
+	good := hex.EncodeToString(sum[:])
+	if err := verifyBinarySHA256(bin, good); err != nil {
+		t.Fatalf("matching checksum rejected: %v", err)
+	}
+	if err := verifyBinarySHA256(bin, strings.Repeat("0", 64)); err == nil {
+		t.Fatal("mismatched checksum accepted")
+	}
+	if err := verifyBinarySHA256(bin, ""); err != nil {
+		t.Fatalf("empty checksum must skip: %v", err)
+	}
+}
+
 func TestSignerSupervisorLifecycleAndPidReuse(t *testing.T) {
 	dataDir := t.TempDir()
 	s := NewGreenlightSignerService()
@@ -68,7 +89,7 @@ func TestSignerSupervisorRespawn(t *testing.T) {
 	s := NewGreenlightSignerService()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if err := s.Start(ctx, dataDir, "testnet", fakeGlcli(t, true), nil); err != nil {
+	if err := s.Start(ctx, dataDir, "testnet", fakeGlcli(t, true), "", nil); err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(5 * time.Second)

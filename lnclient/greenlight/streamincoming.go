@@ -111,6 +111,11 @@ func (g *GreenlightService) streamIncoming(ctx context.Context) {
 				},
 			}
 
+			if !validIncomingPreimage(transaction) {
+				logger.Logger.WithField("payment_hash", paymentHash).Error("Hosted node reported incoming keysend with mismatched preimage; not crediting")
+				continue
+			}
+
 			logger.Logger.WithFields(logrus.Fields{
 				"payment_hash": paymentHash,
 				"amount_msat":  amountMsat,

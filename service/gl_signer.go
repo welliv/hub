@@ -2,7 +2,11 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,8 +33,11 @@ type GreenlightSignerService struct {
 	glcli    string
 	pidPath  string
 	lastErr  string
-	cmd      *exec.Cmd     // the live signer process, when spawned
-	done     chan struct{} // closed when cmd exits
+	// expectedSHA256, when set, pins the glcli binary. It reads the plaintext
+	// hsm_secret, so a replaced binary must fail closed.
+	expectedSHA256 string
+	cmd            *exec.Cmd     // the live signer process, when spawned
+	done           chan struct{} // closed when cmd exits
 
 	eventPublisher       events.EventPublisher // nil in external-signer mode
 	lastPublishedHealthy bool
@@ -40,7 +47,7 @@ func NewGreenlightSignerService() *GreenlightSignerService {
 	return &GreenlightSignerService{lastPublishedHealthy: false}
 }
 
-func (s *GreenlightSignerService) Start(ctx context.Context, dataDir, network, glcliPath string, eventPublisher events.EventPublisher) error {
+func (s *GreenlightSignerService) Start(ctx context.Context, dataDir, network, glcliPath, expectedSHA256 string, eventPublisher events.EventPublisher) error {
 	s.mu.Lock()
 	if s.running {
 		s.mu.Unlock()
@@ -54,6 +61,7 @@ func (s *GreenlightSignerService) Start(ctx context.Context, dataDir, network, g
 		return fmt.Errorf("network required (set GREENLIGHT_NETWORK)")
 	}
 	s.glcli = glcliPath
+	s.expectedSHA256 = expectedSHA256
 	s.pidPath = filepath.Join(dataDir, "signer.pid")
 	s.eventPublisher = eventPublisher
 	s.lastPublishedHealthy = false
@@ -196,6 +204,32 @@ func (s *GreenlightSignerService) resolveBinary() (string, error) {
 	return "", fmt.Errorf("glcli not found")
 }
 
+// verifyBinarySHA256 fails closed if the resolved glcli binary does not match
+// the operator's pinned hash. An empty expected hash disables the check.
+func verifyBinarySHA256(bin, expected string) error {
+	if expected == "" {
+		return nil
+	}
+	want, err := hex.DecodeString(strings.TrimSpace(expected))
+	if err != nil || len(want) != sha256.Size {
+		return fmt.Errorf("invalid expected glcli SHA-256: %q", expected)
+	}
+	f, err := os.Open(bin)
+	if err != nil {
+		return fmt.Errorf("open glcli for checksum: %w", err)
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return fmt.Errorf("hash glcli: %w", err)
+	}
+	got := h.Sum(nil)
+	if subtle.ConstantTimeCompare(got, want) != 1 {
+		return fmt.Errorf("glcli binary SHA-256 mismatch: got %x, want %x", got, want)
+	}
+	return nil
+}
+
 // checkGlcliCompat verifies the glcli binary supports the flags the hub
 // relies on. gl-cli 0.1.1 (crates.io) lacks --backup-path; without it the
 // signer would exit immediately and the node would be unable to sign.
@@ -238,6 +272,9 @@ func (s *GreenlightSignerService) reapOrphan() {
 func (s *GreenlightSignerService) spawn() error {
 	bin, err := s.resolveBinary()
 	if err != nil {
+		return err
+	}
+	if err := verifyBinarySHA256(bin, s.expectedSHA256); err != nil {
 		return err
 	}
 	if err := checkGlcliCompat(bin); err != nil {

@@ -1242,10 +1242,8 @@ func TestStreamIncomingKeysend(t *testing.T) {
 	for i := range preimage {
 		preimage[i] = byte(i)
 	}
-	paymentHash := make([]byte, 32)
-	for i := range paymentHash {
-		paymentHash[i] = byte(0xff - i)
-	}
+	hash := sha256.Sum256(preimage)
+	paymentHash := hash[:]
 	appPubkey := []byte("02f1d2e5f1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d")
 
 	// keysend with app-specific TLV record (NIP-47 apps use type 5482373484)

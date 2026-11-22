@@ -655,7 +655,7 @@ func (svc *service) launchGreenlight(ctx context.Context, encryptionKey string) 
 		if svc.glSigner == nil {
 			svc.glSigner = NewGreenlightSignerService()
 		}
-		if err := svc.glSigner.Start(ctx, signerDir, glNet, env.GreenlightGlcliPath, svc.eventPublisher); err != nil {
+		if err := svc.glSigner.Start(ctx, signerDir, glNet, env.GreenlightGlcliPath, env.GreenlightGlcliSHA256, svc.eventPublisher); err != nil {
 			_ = greenlight.ShredSeedFile(signerDir)
 			return nil, fmt.Errorf("start greenlight signer: %w", err)
 		}
@@ -681,7 +681,7 @@ func (svc *service) launchGreenlight(ctx context.Context, encryptionKey string) 
 			if svc.glSigner == nil {
 				svc.glSigner = NewGreenlightSignerService()
 			}
-			if err := svc.glSigner.Start(ctx, signerDir, glNet, env.GreenlightGlcliPath, svc.eventPublisher); err != nil {
+			if err := svc.glSigner.Start(ctx, signerDir, glNet, env.GreenlightGlcliPath, env.GreenlightGlcliSHA256, svc.eventPublisher); err != nil {
 				return nil, fmt.Errorf("start greenlight signer: %w", err)
 			}
 			time.Sleep(2 * time.Second)
