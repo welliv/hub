@@ -97,10 +97,27 @@ func lspErrorReason(err error) string {
 // checkJitQuote refuses a JIT invoice whose advertised LSPS2 opening
 // fee would leave the user with nothing (fee >= amount) or exceeds the
 // operator's optional cap (maxFeeMsat > 0).
+// LDK accepts the smaller of the LSP's menu fee and an absolute ceiling of
+// max(5,000 sats, 10% of the payment). Greenlight does not expose a fee menu,
+// but the quote returned by LspInvoice is the menu-derived fee for that
+// amount, so refusing quotes above this ceiling gives the same effective bound.
+const (
+	jitMaxOpeningFeeBaseMsat   = 5_000_000
+	jitMaxOpeningFeePercentile = 10
+)
+
+func jitMaxAcceptableOpeningFeeMsat(amountMsat uint64) uint64 {
+	return max(jitMaxOpeningFeeBaseMsat, amountMsat/100*jitMaxOpeningFeePercentile)
+}
+
 func checkJitQuote(amountMsat, feeMsat, maxFeeMsat uint64) error {
 	if feeMsat >= amountMsat {
 		return fmt.Errorf("cannot receive %d sats: the LSP channel-opening fee (%d sats) is not below the amount",
 			amountMsat/1000, feeMsat/1000)
+	}
+	if ceiling := jitMaxAcceptableOpeningFeeMsat(amountMsat); feeMsat > ceiling {
+		return fmt.Errorf("cannot receive %d sats: the LSP channel-opening fee (%d sats) is above the allowed maximum (%d sats)",
+			amountMsat/1000, feeMsat/1000, ceiling/1000)
 	}
 	if maxFeeMsat > 0 && feeMsat > maxFeeMsat {
 		return fmt.Errorf("cannot receive %d sats: the LSP channel-opening fee (%d sats) is above the configured maximum (%d sats, GREENLIGHT_JIT_MAX_FEE_SAT)",

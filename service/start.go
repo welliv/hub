@@ -715,6 +715,14 @@ func (svc *service) launchGreenlight(ctx context.Context, encryptionKey string) 
 	if env.GreenlightJitMaxFeeSat > 0 {
 		cfg.JitMaxFeeMsat = env.GreenlightJitMaxFeeSat * 1000
 	}
+	// Explicit, operator-verified JIT bounds. The hosted node does not expose
+	// a fee menu, so these are the only trustworthy source for the UI.
+	if env.GreenlightJitMinPaymentSizeSat > 0 {
+		cfg.JitMinPaymentSizeMsat = env.GreenlightJitMinPaymentSizeSat * 1000
+	}
+	if env.GreenlightJitMaxPaymentSizeSat > 0 {
+		cfg.JitMaxPaymentSizeMsat = env.GreenlightJitMaxPaymentSizeSat * 1000
+	}
 	if svc.glSigner != nil {
 		// wire the signer's health state into the node-status surface so
 		// an outage is visible (not misattributed to the node itself)

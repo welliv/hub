@@ -25,12 +25,19 @@ func (g *GreenlightService) GetLiquiditySourceLsps2() string {
 }
 
 // GetLiquiditySourceLsps2PaymentSizeRangeMsat implements the
-// api.lsps2PaymentSizeRangeProvider capability.
-//
-// No bounds are published for the hosted LSP, so return nil for both: the
-// frontend omits the "JIT payment size" line rather than fabricating a range
-// from a different network. Once a real quote is observed it can be cached
-// here and reported.
+// api.lsps2PaymentSizeRangeProvider capability. Greenlight's LspInvoice RPC
+// exposes only the fee for one invoice, not a fee menu, so the bounds come
+// from the operator's verified configuration. 0 means unknown: returning nil
+// keeps the UI from enforcing a number we cannot substantiate.
 func (g *GreenlightService) GetLiquiditySourceLsps2PaymentSizeRangeMsat() (*uint64, *uint64) {
-	return nil, nil
+	var min, max *uint64
+	if g.config.JitMinPaymentSizeMsat > 0 {
+		v := g.config.JitMinPaymentSizeMsat
+		min = &v
+	}
+	if g.config.JitMaxPaymentSizeMsat > 0 {
+		v := g.config.JitMaxPaymentSizeMsat
+		max = &v
+	}
+	return min, max
 }

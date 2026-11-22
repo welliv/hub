@@ -18,6 +18,10 @@ func TestCheckJitQuote(t *testing.T) {
 		{"fee above amount", 1_000, 5_000, 0, false},
 		{"fee at cap", 100_000, 5_000, 5_000, true},
 		{"fee above cap", 100_000, 5_001, 5_000, false},
+		{"base ceiling at 5000 sats", 20_000_000, 5_000_000, 0, true},
+		{"above base ceiling", 20_000_000, 5_000_001, 0, false},
+		{"10 percent ceiling ok", 16_000_000_000, 329_024_000, 0, true},
+		{"above 10 percent ceiling", 16_000_000_000, 1_600_000_001, 0, false},
 	}
 	for _, c := range cases {
 		err := checkJitQuote(c.amount, c.fee, c.limit)
@@ -37,7 +41,7 @@ func TestMakeInvoice_JitRefusedWhenFeeAboveCap(t *testing.T) {
 	defer cleanup()
 	svc.config.JitMaxFeeMsat = 5_000_000
 
-	_, err := svc.MakeInvoice(context.Background(), 20_000_000, "too expensive", "", 3600, nil)
+	_, err := svc.MakeInvoice(context.Background(), 200_000_000, "too expensive", "", 3600, nil)
 	if err == nil || !strings.Contains(err.Error(), "above the configured maximum") {
 		t.Fatalf("expected cap refusal, got %v", err)
 	}
@@ -46,7 +50,7 @@ func TestMakeInvoice_JitRefusedWhenFeeAboveCap(t *testing.T) {
 	}
 
 	svc.config.JitMaxFeeMsat = 0
-	if _, err := svc.MakeInvoice(context.Background(), 20_000_000, "ok", "", 3600, nil); err != nil {
+	if _, err := svc.MakeInvoice(context.Background(), 200_000_000, "ok", "", 3600, nil); err != nil {
 		t.Fatalf("no cap: %v", err)
 	}
 }

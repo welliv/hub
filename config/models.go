@@ -80,6 +80,11 @@ type AppConfig struct {
 	// Optional hard cap on the LSPS2 opening fee the hub accepts for a JIT
 	// invoice (sats). 0 = no cap beyond "fee must be below the amount".
 	GreenlightJitMaxFeeSat uint64 `envconfig:"GREENLIGHT_JIT_MAX_FEE_SAT"`
+	// Verified JIT payment-size bounds for the hosted LSP (sats). These are
+	// explicit because Greenlight's LspInvoice RPC does not expose a fee menu.
+	// 0 = unknown / do not display or enforce in the UI.
+	GreenlightJitMinPaymentSizeSat uint64 `envconfig:"GREENLIGHT_JIT_MIN_PAYMENT_SIZE_SAT"`
+	GreenlightJitMaxPaymentSizeSat uint64 `envconfig:"GREENLIGHT_JIT_MAX_PAYMENT_SIZE_SAT"`
 	// Stop minting JIT invoices after an LSP skims more than it advertised.
 	GreenlightRefuseJitAfterLspViolation bool `envconfig:"GREENLIGHT_REFUSE_JIT_AFTER_LSP_VIOLATION"`
 

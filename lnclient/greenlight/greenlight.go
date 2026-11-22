@@ -60,6 +60,11 @@ type Config struct {
 	// JitMaxFeeMsat, when > 0, refuses a JIT invoice whose advertised
 	// LSPS2 opening fee is above it. A fee >= the amount is always refused.
 	JitMaxFeeMsat uint64
+	// JitMinPaymentSizeMsat and JitMaxPaymentSizeMsat are the verified
+	// payment-size bounds for the hosted LSP. 0 means unknown; no value is
+	// reported to /api/jit-channels-info and the UI does not constrain input.
+	JitMinPaymentSizeMsat uint64
+	JitMaxPaymentSizeMsat uint64
 }
 
 // SignerStatus carries the signer service's health state for surfacing
