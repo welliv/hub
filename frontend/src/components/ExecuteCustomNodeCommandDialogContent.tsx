@@ -56,7 +56,9 @@ export function ExecuteCustomNodeCommandDialogContent({
       toast("Command executed", { description: parsedResponse });
     } catch (error) {
       console.error(error);
-      toast.error("Something went wrong: " + error);
+      const message = "Failed to execute command: " + error;
+      setCommandResponse(message);
+      toast.error(message);
     }
   }
 

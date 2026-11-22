@@ -303,6 +303,10 @@ function GetNetworkGraphDialogContent({ apiRequest }: Props) {
 
 export default function DebugTools() {
   const [apiResponse, setApiResponse] = React.useState<string>("");
+  // The dialog's command list must stay independent of tool output: writing a
+  // command result into apiResponse used to blank the "Available commands"
+  // box, because the dialog parsed that same string for a `.commands` field.
+  const [commandsList, setCommandsList] = React.useState<string>("");
   const [dialog, setDialog] = React.useState<
     | "refundSwap"
     | "getAppLogs"
@@ -338,6 +342,15 @@ export default function DebugTools() {
       );
     } catch (error) {
       setApiResponse(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+  }
+
+  async function loadCommandsForDialog() {
+    try {
+      const data = await request("/api/commands", { method: "GET" });
+      setCommandsList(JSON.stringify(data, null, 2));
+    } catch (error) {
+      setCommandsList(JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
   }
 
@@ -453,8 +466,8 @@ export default function DebugTools() {
           <AlertDialogTrigger asChild>
             <Button
               variant="outline"
-              onClick={() => {
-                apiRequest(`/api/commands`, "GET");
+              onClick={async () => {
+                await loadCommandsForDialog();
                 setDialog("customNodeCommand");
               }}
             >
@@ -486,7 +499,7 @@ export default function DebugTools() {
           {dialog === "resetRoutingData" && <ResetRoutingDataDialogContent />}
           {dialog === "customNodeCommand" && (
             <ExecuteCustomNodeCommandDialogContent
-              availableCommands={apiResponse}
+              availableCommands={commandsList}
               setCommandResponse={setApiResponse}
             />
           )}
