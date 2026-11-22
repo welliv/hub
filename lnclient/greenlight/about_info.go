@@ -6,22 +6,18 @@ package greenlight
 // backend for these values through small optional interfaces. Keeping the
 // answers here means the About page can show the same shape for every backend
 // without hardcoding a backend type in the API layer.
+// The gl-plugin selects an LSP from connected peers at invoice time and
+// does not expose which one it chose. Say that plainly rather than inventing
+// a pubkey or reusing an LDK catalog entry from another network.
 const (
-	// Greenlight nodes are hosted: chain data is followed by Blockstream's
-	// infrastructure, not by a local bitcoind/esplora/electrum endpoint.
-	greenlightChainDataSourceType    = "hosted"
-	greenlightChainDataSourceAddress = "Blockstream infrastructure"
-
-	// The gl-plugin selects an LSP from connected peers at invoice time and
-	// does not expose which one it chose. Say that plainly rather than
-	// inventing a pubkey or reusing an LDK catalog entry from another network.
 	greenlightLiquiditySource = "Greenlight plugin-selected LSP"
 )
 
-// GetChainDataSource implements the api.chainSourceProvider capability.
-func (g *GreenlightService) GetChainDataSource() (string, string) {
-	return greenlightChainDataSourceType, greenlightChainDataSourceAddress
-}
+// NOTE: the chain data source is intentionally NOT provided here.
+// It is a Hub-level setting (BITCOIND_RPC_HOST / ESPLORA_SERVER /
+// ELECTRUM_SERVER) shared by every backend, so api.GetInfo derives it from
+// config for Greenlight exactly as it does for LDK. Reporting "hosted" here
+// would hide the real electrum/esplora endpoint from the About page.
 
 // GetLiquiditySourceLsps2 implements the api.lsps2SourceProvider capability.
 func (g *GreenlightService) GetLiquiditySourceLsps2() string {

@@ -1558,6 +1558,13 @@ func (api *api) GetInfo(ctx context.Context) (*InfoResponse, error) {
 		if provider, ok := lnClient.(lsps2SourceProvider); ok {
 			info.JitChannelsLiquiditySource = provider.GetLiquiditySourceLsps2()
 		}
+
+		// Backends without their own chain-source provider (Greenlight, etc.)
+		// still have a Hub-level chain data source. Report it from the same
+		// config LDK uses so About shows the same shape for every backend.
+		if info.ChainDataSourceType == "" {
+			info.ChainDataSourceType, info.ChainDataSourceAddress = chainDataSourceFromEnv(api.cfg.GetEnv())
+		}
 	}
 
 	info.NextBackupReminder, _ = api.cfg.Get("NextBackupReminder", "")
@@ -1565,6 +1572,44 @@ func (api *api) GetInfo(ctx context.Context) (*InfoResponse, error) {
 	info.NodeAlias, _ = api.cfg.Get("NodeAlias", "")
 
 	return &info, nil
+}
+
+// chainDataSourceFromEnv mirrors LDK's priority order (bitcoind, esplora,
+// electrum) for backends that don't expose a provider. Credentials are stripped
+// from the endpoint before it is shown in About.
+func chainDataSourceFromEnv(env *config.AppConfig) (string, string) {
+	clean := func(endpoint, defaultPort string) string {
+		u, err := url.Parse(endpoint)
+		if err != nil || u.Host == "" {
+			u, err = url.Parse("//" + endpoint)
+		}
+		if err != nil || u.Hostname() == "" {
+			return endpoint
+		}
+		u.User = nil
+		host := u.Hostname()
+		port := u.Port()
+		if port == "" {
+			port = defaultPort
+		}
+		if port != "" {
+			u.Host = host + ":" + port
+		} else {
+			u.Host = host
+		}
+		return u.String()
+	}
+
+	switch {
+	case env.BitcoindRpcHost != "":
+		return "bitcoind", clean(env.BitcoindRpcHost, env.BitcoindRpcPort)
+	case env.EsploraServer != "":
+		return "esplora", clean(env.EsploraServer, "")
+	case env.ElectrumServer != "":
+		return "electrum", clean(env.ElectrumServer, "")
+	default:
+		return "", ""
+	}
 }
 
 func (api *api) GetJitChannelsInfo() (*JitChannelsInfoResponse, error) {
