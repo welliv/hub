@@ -1543,22 +1543,20 @@ func (api *api) GetInfo(ctx context.Context) (*InfoResponse, error) {
 		}
 
 		info.Network = nodeInfo.Network
-		if backendType == config.LDKBackendType {
-			// Only LDK supports this right now. Using a local interface here
-			// so we don't have to bloat the main LNClient interface for everyone else.
-			type chainSourceProvider interface {
-				GetChainDataSource() (string, string)
-			}
-			type lsps2SourceProvider interface {
-				GetLiquiditySourceLsps2() string
-			}
+		// Optional capability interfaces: any backend that can describe its
+		// chain source or JIT liquidity source can fill these fields.
+		type chainSourceProvider interface {
+			GetChainDataSource() (string, string)
+		}
+		type lsps2SourceProvider interface {
+			GetLiquiditySourceLsps2() string
+		}
 
-			if ldkService, ok := lnClient.(chainSourceProvider); ok {
-				info.ChainDataSourceType, info.ChainDataSourceAddress = ldkService.GetChainDataSource()
-			}
-			if ldkService, ok := lnClient.(lsps2SourceProvider); ok {
-				info.JitChannelsLiquiditySource = ldkService.GetLiquiditySourceLsps2()
-			}
+		if provider, ok := lnClient.(chainSourceProvider); ok {
+			info.ChainDataSourceType, info.ChainDataSourceAddress = provider.GetChainDataSource()
+		}
+		if provider, ok := lnClient.(lsps2SourceProvider); ok {
+			info.JitChannelsLiquiditySource = provider.GetLiquiditySourceLsps2()
 		}
 	}
 
@@ -1572,15 +1570,11 @@ func (api *api) GetInfo(ctx context.Context) (*InfoResponse, error) {
 func (api *api) GetJitChannelsInfo() (*JitChannelsInfoResponse, error) {
 	info := &JitChannelsInfoResponse{}
 
-	backendType, err := api.cfg.Get("LNBackendType", "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get LN backend type: %w", err)
-	}
 	jitChannelsEnabled, err := api.cfg.Get("JitChannelsEnabled", "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get JIT channels enabled setting: %w", err)
 	}
-	if backendType != config.LDKBackendType || jitChannelsEnabled == "false" {
+	if jitChannelsEnabled == "false" {
 		return info, nil
 	}
 
@@ -1592,12 +1586,12 @@ func (api *api) GetJitChannelsInfo() (*JitChannelsInfoResponse, error) {
 	type lsps2PaymentSizeRangeProvider interface {
 		GetLiquiditySourceLsps2PaymentSizeRangeMsat() (*uint64, *uint64)
 	}
-	ldkService, ok := lnClient.(lsps2PaymentSizeRangeProvider)
+	provider, ok := lnClient.(lsps2PaymentSizeRangeProvider)
 	if !ok {
 		return info, nil
 	}
 
-	info.MinPaymentSizeMsat, info.MaxPaymentSizeMsat = ldkService.GetLiquiditySourceLsps2PaymentSizeRangeMsat()
+	info.MinPaymentSizeMsat, info.MaxPaymentSizeMsat = provider.GetLiquiditySourceLsps2PaymentSizeRangeMsat()
 	return info, nil
 }
 

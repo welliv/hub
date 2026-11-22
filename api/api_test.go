@@ -29,7 +29,6 @@ func TestGetJitChannelsInfo(t *testing.T) {
 	t.Run("does not query LSPS2 when JIT channels are disabled", func(t *testing.T) {
 		cfg := mocks.NewMockConfig(t)
 		svc := mocks.NewMockService(t)
-		cfg.On("Get", "LNBackendType", "").Return("LDK", nil)
 		cfg.On("Get", "JitChannelsEnabled", "").Return("false", nil)
 
 		theAPI := &api{cfg: cfg, svc: svc}
@@ -43,7 +42,7 @@ func TestGetJitChannelsInfo(t *testing.T) {
 	t.Run("returns an error when config cannot be read", func(t *testing.T) {
 		cfg := mocks.NewMockConfig(t)
 		svc := mocks.NewMockService(t)
-		cfg.On("Get", "LNBackendType", "").Return("", fmt.Errorf("db error"))
+		cfg.On("Get", "JitChannelsEnabled", "").Return("", fmt.Errorf("db error"))
 
 		theAPI := &api{cfg: cfg, svc: svc}
 		info, err := theAPI.GetJitChannelsInfo()
@@ -60,7 +59,6 @@ func TestGetJitChannelsInfo(t *testing.T) {
 			minPaymentSizeMsat: 1_000_000,
 			maxPaymentSizeMsat: 100_000_000,
 		}
-		cfg.On("Get", "LNBackendType", "").Return("LDK", nil)
 		cfg.On("Get", "JitChannelsEnabled", "").Return("true", nil)
 		svc.On("GetLNClient").Return(lnClient)
 

@@ -15,7 +15,7 @@ export function NodeSettings() {
   if (!info) {
     return <Loading />;
   }
-  if (info.backendType !== "LDK") {
+  if (info.backendType !== "LDK" && info.backendType !== "GREENLIGHT") {
     return <p>Your Hub does not support this feature.</p>;
   }
 

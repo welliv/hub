@@ -163,7 +163,8 @@ export default function SettingsLayout() {
             </NavGroup>
 
             <NavGroup label="Advanced">
-              {info?.backendType === "LDK" && (
+              {(info?.backendType === "LDK" ||
+                info?.backendType === "GREENLIGHT") && (
                 <MenuItem to="/settings/node" icon={BoxIcon}>
                   Node
                 </MenuItem>
