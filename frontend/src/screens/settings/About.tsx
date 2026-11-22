@@ -126,17 +126,21 @@ export function About() {
             </p>
             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
               {lsps2Pubkey ? (
-                <ExternalLink
-                  to={`${info.mempoolUrl}/lightning/node/${lsps2Pubkey}`}
-                  className="inline-flex items-center gap-1 underline w-fit"
-                >
-                  {lsps2Label}
-                  <ExternalLinkIcon className="size-4" />
-                </ExternalLink>
+                <>
+                  <ExternalLink
+                    to={`${info.mempoolUrl}/lightning/node/${lsps2Pubkey}`}
+                    className="inline-flex items-center gap-1 underline w-fit"
+                  >
+                    {lsps2Label}
+                    <ExternalLinkIcon className="size-4" />
+                  </ExternalLink>
+                  <p className="break-all">{info.jitChannelsLiquiditySource}</p>
+                </>
               ) : (
-                <p>{lsps2Label}</p>
+                // No pubkey in the source: lsps2Label is the source itself,
+                // so rendering both would duplicate the line (Greenlight).
+                <p className="break-all">{info.jitChannelsLiquiditySource}</p>
               )}
-              <p className="break-all">{info.jitChannelsLiquiditySource}</p>
               {(lsps2MinPaymentSizeSat || lsps2MaxPaymentSizeSat) && (
                 <p>
                   JIT payment size:{" "}
