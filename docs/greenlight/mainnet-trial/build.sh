@@ -17,7 +17,7 @@ echo "building $BRANCH @ $COMMIT for $OS/$ARCH"
 node -e 'const [a,b]=process.versions.node.split(".").map(Number); if(a<22||(a===22&&b<12)){console.error("need Node >= 22.12, have "+process.versions.node);process.exit(1)}'
 ( cd frontend && yarn install --frozen-lockfile --network-timeout 3000000 && yarn build:http )
 export CGO_ENABLED=1
-go build -trimpath -ldflags="-X 'github.com/getAlby/hub/version.Tag=v1.24.7+gl-${COMMIT:0:8}'" -o "$OUT/albyhub" ./cmd/http
+go build -trimpath -ldflags="-X 'github.com/getAlby/hub/version.Tag=v1.24.8+gl-${COMMIT:0:8}'" -o "$OUT/albyhub" ./cmd/http
 # the LDK shared library is linked even when the Greenlight backend is used
 LDKDIR=$(go list -m -f '{{.Dir}}' github.com/getAlby/ldk-node-go)
 case "$OS/$ARCH" in
