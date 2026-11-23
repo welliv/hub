@@ -154,10 +154,10 @@ export function SetupSecurity() {
                 <ShieldAlertIcon className="size-6" />
               </div>
               <span className="text-sm text-muted-foreground">
-                Your 12-word recovery phrase restores access to your Greenlight
-                node. Save a Hub backup before moving devices to keep app
-                connections. Channels live on Greenlight until you leave
-                Greenlight (advanced).
+                Greenlight runs the node in Blockstream's cloud. Keep this
+                machine online and unlocked so the local signer can approve
+                payments. Your 12-word phrase restores the node; restore a Hub
+                backup to keep app connections.
               </span>
             </div>
           ) : store.hasImportedMnemonic &&

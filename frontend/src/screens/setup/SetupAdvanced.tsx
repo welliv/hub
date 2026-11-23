@@ -16,32 +16,25 @@ export function SetupAdvanced() {
         <TwoColumnLayoutHeader
           title="Advanced Setup"
           pageTitle="Advanced Setup"
-          description="Restore a backup, import a recovery phrase, or pick a custom node backend."
+          description="Import your Alby Hub, import existing recovery phrase or create custom wallet."
         />
         <div className="flex flex-col gap-3">
-          <LinkButton to="/setup/recover" className="w-full">
-            Restore Hub or recovery phrase
-          </LinkButton>
-          <LinkButton
-            to="/setup/node-restore"
-            variant="secondary"
-            className="w-full"
-          >
-            Import wallet from migration file
+          <LinkButton to="/setup/node-restore" className="w-full">
+            Import Wallet from Migration File
           </LinkButton>
           <LinkButton
             to="/setup/password?wallet=import"
             variant="secondary"
             className="w-full"
           >
-            Import recovery phrase (choose node)
+            Import Existing Recovery Phrase
           </LinkButton>
           <LinkButton
             to="/setup/password"
             variant="secondary"
             className="w-full"
           >
-            Create wallet with custom node
+            Create Wallet with Custom Node
           </LinkButton>
         </div>
       </div>

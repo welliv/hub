@@ -62,7 +62,6 @@ import { SetupAdvanced } from "src/screens/setup/SetupAdvanced";
 import { SetupFinish } from "src/screens/setup/SetupFinish";
 import { SetupNode } from "src/screens/setup/SetupNode";
 import { SetupPassword } from "src/screens/setup/SetupPassword";
-import { SetupRecover } from "src/screens/setup/SetupRecover";
 import { SetupSecurity } from "src/screens/setup/SetupSecurity";
 import { BarkForm } from "src/screens/setup/node/BarkForm";
 import { CLNForm } from "src/screens/setup/node/CLNForm";
@@ -581,10 +580,6 @@ const routes: RouteObject[] = [
           {
             path: "advanced",
             element: <SetupAdvanced />,
-          },
-          {
-            path: "recover",
-            element: <SetupRecover />,
           },
           {
             path: "import-mnemonic",
