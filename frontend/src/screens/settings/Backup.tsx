@@ -113,8 +113,7 @@ export default function Backup() {
                   {info?.backendType === "GREENLIGHT" ? (
                     <>
                       Your 12-word phrase restores access to your Greenlight
-                      node. Keep it safe, and download a Hub backup before
-                      moving devices so app connections come with you.
+                      node. Keep it safe.
                     </>
                   ) : (
                     <>
@@ -316,12 +315,9 @@ function GreenlightChannelBackup() {
       <div>
         <h3 className="text-lg font-medium">Channels Backup</h3>
         <p className="text-sm text-muted-foreground">
-          Greenlight keeps channel state on Blockstream&apos;s hosted node. The
-          local signer writes a static backup to{" "}
-          <code className="text-xs">backup.json</code> when a new channel opens.
-          The Hub backup packages that file with encrypted Hub data and device
-          credentials. Your 12-word phrase restores access to the same hosted
-          node; it does not create channels on a local node.
+          Greenlight keeps channels on its hosted node. The local signer writes{" "}
+          <code className="text-xs">backup.json</code> when a channel opens, and
+          the Hub backup includes it.
         </p>
       </div>
 
@@ -331,9 +327,8 @@ function GreenlightChannelBackup() {
           <Badge variant={"positive"}>Included in Hub backup</Badge>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          Move devices with a Hub backup and run only one Hub for a Greenlight
-          node. Greenlight does not use VSS, so there is no dynamic channel
-          backup or instant recovery from the phrase alone.
+          There is no VSS or dynamic channel backup. Use a Hub backup when you
+          move devices, and run only one Hub per Greenlight node.
         </p>
       </div>
 
@@ -343,10 +338,8 @@ function GreenlightChannelBackup() {
           <Badge className="shrink-0">Advanced</Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          The static backup can be converted to a self-hosted Core Lightning
-          node with Greenlight&apos;s signer. Peers and the LSP must force-close
-          before funds arrive on-chain. This one-way migration is not automated
-          in the Hub UI.
+          Full self-hosting export and CLN recovery are advanced, one-way flows.
+          CLN recovery needs peer force-close and is not automated here.
         </p>
       </div>
     </div>

@@ -156,8 +156,7 @@ export function SetupSecurity() {
               <span className="text-sm text-muted-foreground">
                 Greenlight runs the node in Blockstream's cloud. Keep this
                 machine online and unlocked so the local signer can approve
-                payments. Your 12-word phrase restores the node; restore a Hub
-                backup to keep app connections.
+                payments.
               </span>
             </div>
           ) : store.hasImportedMnemonic &&
@@ -173,7 +172,7 @@ export function SetupSecurity() {
                 before proceeding.
               </span>
             </div>
-          ) : store.nodeInfo.backendType === "BARK" ? null : (
+          ) : (
             <div className="flex gap-3 items-center">
               <div className="shrink-0">
                 <ShieldAlertIcon className="size-6" />

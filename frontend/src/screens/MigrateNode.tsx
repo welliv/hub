@@ -157,15 +157,9 @@ export function MigrateNode() {
               <h3>Greenlight node</h3>
             </div>
             <p className="text-sm ml-7">
-              Your channels stay on Blockstream&apos;s hosted node; this file
-              holds encrypted Hub data, device credentials and the signer&apos;s
-              static channel backup. It reconnects the new Hub to the same node.
-              Only run one Hub per Greenlight node.
-            </p>
-            <p className="text-sm ml-7">
-              This is not a Greenlight-to-CLN migration. Leaving Greenlight uses
-              the static channel backup, requires peers or the LSP to
-              force-close, and is one-way. The Hub UI does not automate it.
+              Your channels stay on Greenlight's hosted node. This file restores
+              the Hub and reconnects to the same node; run one Hub at a time. It
+              is not a Greenlight-to-CLN export.
             </p>
           </div>
         )}
