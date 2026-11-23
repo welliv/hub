@@ -1,4 +1,5 @@
 import { ReactElement } from "react";
+import { GreenlightIcon } from "src/components/icons/Greenlight";
 import { LDKIcon } from "src/components/icons/LDK";
 import { PhoenixdIcon } from "src/components/icons/Phoenixd";
 import { BackendType } from "src/types";
@@ -7,11 +8,11 @@ import barkDark from "src/assets/images/node/bark-dark.svg";
 import barkLight from "src/assets/images/node/bark-light.svg";
 import cashu from "src/assets/images/node/cashu.png";
 import cln from "src/assets/images/node/cln.png";
-import greenlight from "src/assets/images/node/greenlight-dark.svg";
 import lnd from "src/assets/images/node/lnd.png";
 
 type BackendTypeConfig = {
   title: string;
+  subtitle?: string;
   icon: ReactElement;
   hasMnemonic: boolean;
   hasChannelManagement: boolean;
@@ -55,13 +56,11 @@ export const backendTypeConfigs: Record<BackendType, BackendTypeConfig> = {
     hasNodeBackup: false,
   },
   GREENLIGHT: {
-    title: "Greenlight (experimental)",
-    // the official Greenlight lockup is designed for dark backgrounds —
-    // a black badge with the white emblem reads on the (always-light)
-    // setup wizard panel AND on dark-mode surfaces; the white-badge
-    // variant is invisible on the white wizard panel, so the dark badge
-    // is used unconditionally (Bark's dark badge behaves the same)
-    icon: <img src={greenlight} />,
+    title: "Greenlight",
+    subtitle: "Experimental",
+    // Official two-tone emblem on a dark badge. The emblem's white half needs
+    // a dark ground; the yellow half is Blockstream's primary Greenlight yellow.
+    icon: <GreenlightIcon />,
     // 12-word BIP-39 is both GL node seed and Settings backup phrase
     hasMnemonic: true,
     // Real CLN channels on Blockstream cloud — not Bark stubs

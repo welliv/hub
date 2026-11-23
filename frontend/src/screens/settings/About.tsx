@@ -67,7 +67,14 @@ export function About() {
             <div className="h-6 w-6">
               {backendTypeConfigs[info.backendType].icon}
             </div>
-            <p>{backendTypeConfigs[info.backendType].title}</p>
+            <div className="flex flex-col">
+              <p>{backendTypeConfigs[info.backendType].title}</p>
+              {backendTypeConfigs[info.backendType].subtitle && (
+                <p className="text-xs">
+                  {backendTypeConfigs[info.backendType].subtitle}
+                </p>
+              )}
+            </div>
           </div>
         </div>
         {info.databaseType && (

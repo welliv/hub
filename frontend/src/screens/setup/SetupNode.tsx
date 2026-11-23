@@ -57,7 +57,14 @@ export function SetupNode() {
                 onClick={() => setSelectedBackupType(item.backendType)}
               >
                 <div className="h-6 w-6">{item.icon}</div>
-                {item.title}
+                <div className="flex flex-col items-center gap-0.5">
+                  {item.title}
+                  {item.subtitle && (
+                    <span className="text-muted-foreground text-xs">
+                      {item.subtitle}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
         </div>
