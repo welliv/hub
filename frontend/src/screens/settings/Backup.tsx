@@ -83,74 +83,38 @@ export default function Backup() {
         pageTitle="Backup"
         title="Backup"
         description={
-          info?.backendType === "GREENLIGHT" ? (
-            <>
-              <span className="text-muted-foreground">
-                Three things: your recovery phrase (always), a Hub backup when
-                you move devices, and leave Greenlight only if you self-host.
-              </span>{" "}
-              <a
-                href="https://guides.getalby.com/user-guide/alby-hub/backups-and-recover"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="text-foreground underline"
-              >
-                Learn more
-              </a>
-            </>
-          ) : (
-            <>
-              <span className="text-muted-foreground">
-                Backup your recovery phrase
-                {hasChannelManagement && " and channel states"}. These backups
-                are for disaster recovery only.
-                {hasNodeBackup &&
-                  " To migrate your node, please use the migration tool."}{" "}
-              </span>
-              <a
-                href="https://guides.getalby.com/user-guide/alby-hub/backups-and-recover"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="text-foreground underline"
-              >
-                Learn more about backups
-              </a>
-            </>
-          )
+          <>
+            <span className="text-muted-foreground">
+              Backup your recovery phrase
+              {hasChannelManagement && " and channel states"}. These backups are
+              for disaster recovery only.
+              {hasNodeBackup &&
+                " To migrate your node, please use the migration tool."}{" "}
+            </span>
+            <a
+              href="https://guides.getalby.com/user-guide/alby-hub/backups-and-recover"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-foreground underline"
+            >
+              Learn more about backups
+            </a>
+          </>
         }
       />
-      {info?.backendType === "GREENLIGHT" && (
-        <Alert className="mt-4">
-          <AlertTitle>Stuck or frozen Greenlight node?</AlertTitle>
-          <AlertDescription className="space-y-2 text-sm">
-            <p>
-              If payments hang and node status shows not ready: (1) wait for the
-              local signer to respawn (~15s), (2) if the hosted node stays
-              unhealthy, contact Blockstream Greenlight support — the Hub cannot
-              restart their infrastructure, (3) the Hub remains usable for
-              backups and apps in degraded mode.
-            </p>
-            <p className="text-muted-foreground">
-              Operator detail is in the repository at{" "}
-              <code className="text-xs">docs/GREENLIGHT.md</code> and{" "}
-              <code className="text-xs">docs/RUNBOOK.md</code>.
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
 
       <div className="space-y-6 pb-10">
         {hasMnemonic && (
           <>
             <div className="flex flex-col gap-6">
               <div>
-                <h3 className="text-lg font-medium">1. Recovery Phrase</h3>
+                <h3 className="text-lg font-medium">Recovery Phrase</h3>
                 <p className="text-sm text-muted-foreground">
                   {info?.backendType === "GREENLIGHT" ? (
                     <>
-                      Your 12-word phrase is the only thing you must never lose.
-                      It restores access to your Greenlight node while
-                      Greenlight is online.
+                      Your 12-word phrase restores access to your Greenlight
+                      node. Keep it safe, and download a Hub backup before
+                      moving devices so app connections come with you.
                     </>
                   ) : (
                     <>
@@ -223,65 +187,9 @@ export default function Backup() {
           </>
         )}
 
-        {(info?.backendType === "GREENLIGHT" || hasNodeBackup) && (
-          <>
-            <div className="flex flex-col gap-4">
-              <div>
-                <h3 className="text-lg font-medium">2. Hub backup</h3>
-                <p className="text-sm text-muted-foreground">
-                  {info?.backendType === "GREENLIGHT" ? (
-                    <>
-                      Download before you move or reinstall. Restores this app
-                      and your connections. Your Lightning balance stays on
-                      Greenlight.
-                    </>
-                  ) : (
-                    <>
-                      Create a migration file to move Alby Hub to another device
-                      or server.
-                    </>
-                  )}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => navigate("/settings/migrate")}
-                >
-                  Download Hub backup
-                </Button>
-              </div>
-            </div>
-            <Separator />
-          </>
+        {hasChannelManagement && info?.backendType === "GREENLIGHT" && (
+          <GreenlightChannelBackup />
         )}
-
-        {info?.backendType === "GREENLIGHT" && (
-          <>
-            <div className="flex flex-col gap-4">
-              <div>
-                <h3 className="text-lg font-medium">3. Leave Greenlight</h3>
-                <p className="text-sm text-muted-foreground">
-                  Advanced. Export your node to run Core Lightning yourself.
-                  One-way: the node will no longer start on Greenlight. Not
-                  required for normal use or moving Hub.
-                </p>
-              </div>
-              <Alert>
-                <AlertTriangleIcon />
-                <AlertTitle>Coming to Hub UI</AlertTitle>
-                <AlertDescription>
-                  Use Greenlight&apos;s export tools when you are ready to
-                  self-host. Keep your recovery phrase. Prefer Hub backup for
-                  everyday moves.
-                </AlertDescription>
-              </Alert>
-            </div>
-            <Separator />
-          </>
-        )}
-
         {hasChannelManagement && info?.backendType !== "GREENLIGHT" && (
           <div className="flex flex-col gap-8">
             <div>
@@ -392,16 +300,56 @@ export default function Backup() {
           </div>
         )}
 
-        {!hasMnemonic &&
-          !hasChannelManagement &&
-          !info?.vssSupported &&
-          info?.backendType !== "GREENLIGHT" && (
-            <p className="text-sm text-muted-foreground">
-              No recovery phrase or channel state backup present.
-            </p>
-          )}
+        {!hasMnemonic && !hasChannelManagement && !info?.vssSupported && (
+          <p className="text-sm text-muted-foreground">
+            No recovery phrase or channel state backup present.
+          </p>
+        )}
       </div>
     </>
+  );
+}
+
+function GreenlightChannelBackup() {
+  return (
+    <div className="flex flex-col gap-8">
+      <div>
+        <h3 className="text-lg font-medium">Channels Backup</h3>
+        <p className="text-sm text-muted-foreground">
+          Greenlight keeps channel state on Blockstream&apos;s hosted node. The
+          local signer writes a static backup to{" "}
+          <code className="text-xs">backup.json</code> when a new channel opens.
+          The Hub backup packages that file with encrypted Hub data and device
+          credentials. Your 12-word phrase restores access to the same hosted
+          node; it does not create channels on a local node.
+        </p>
+      </div>
+
+      <div>
+        <div className="flex gap-2 mb-1 items-center">
+          <h3 className="text-sm font-medium">Static channel backup</h3>
+          <Badge variant={"positive"}>Included in Hub backup</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Move devices with a Hub backup and run only one Hub for a Greenlight
+          node. Greenlight does not use VSS, so there is no dynamic channel
+          backup or instant recovery from the phrase alone.
+        </p>
+      </div>
+
+      <div>
+        <div className="flex gap-2 mb-1 items-center">
+          <h3 className="text-sm font-medium">Leaving Greenlight</h3>
+          <Badge className="shrink-0">Advanced</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          The static backup can be converted to a self-hosted Core Lightning
+          node with Greenlight&apos;s signer. Peers and the LSP must force-close
+          before funds arrive on-chain. This one-way migration is not automated
+          in the Hub UI.
+        </p>
+      </div>
+    </div>
   );
 }
 

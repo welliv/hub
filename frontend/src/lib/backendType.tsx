@@ -66,7 +66,9 @@ export const backendTypeConfigs: Record<BackendType, BackendTypeConfig> = {
     hasMnemonic: true,
     // Real CLN channels on Blockstream cloud — not Bark stubs
     hasChannelManagement: true,
-    hasNodeBackup: false,
+    // The Hub .bkp includes device credentials and the signer's static
+    // channel backup, so Greenlight also has a real node backup.
+    hasNodeBackup: true,
   },
   BARK: {
     title: "Bark",
