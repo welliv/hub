@@ -115,7 +115,7 @@ func (httpSvc *HttpService) RegisterSharedRoutes(e *echo.Echo) {
 	e.POST("/api/setup", httpSvc.setupHandler, setupMiddlewares...)
 	e.POST("/api/setup/verify-code", httpSvc.verifySetupCodeHandler, setupMiddlewares...)
 	e.POST("/api/setup/greenlight-cert", httpSvc.greenlightCertUploadHandler, setupMiddlewares...)
-	e.GET("/api/setup/greenlight-cert/status", httpSvc.greenlightCertStatusHandler, setupMiddlewares...)
+	e.GET("/api/setup/greenlight-cert/status", httpSvc.greenlightCertStatusHandler, httpSvc.requireSetupCode)
 	e.POST("/api/restore", httpSvc.restoreBackupHandler, setupMiddlewares...)
 	e.GET("/logout", httpSvc.logoutHandler)
 
