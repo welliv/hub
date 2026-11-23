@@ -56,6 +56,8 @@ type API interface {
 	SetNextBackupReminder(backupReminderRequest *BackupReminderRequest) error
 	Start(startRequest *StartRequest)
 	Setup(ctx context.Context, setupRequest *SetupRequest) error
+	StartGreenlightCertUpload(unlockPassword string, r io.Reader) error
+	GetGreenlightCertStatus() GreenlightCertStatus
 	GetNetworkGraph(ctx context.Context, nodeIds []string) (NetworkGraphResponse, error)
 	SyncWallet() error
 	GetLogOutput(ctx context.Context, logType string, getLogRequest *GetLogOutputRequest) (*GetLogOutputResponse, error)

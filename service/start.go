@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/getAlby/hub/db"
@@ -628,17 +629,37 @@ func (svc *service) launchGreenlight(ctx context.Context, encryptionKey string) 
 
 	if product {
 		svc.startupState = "Provisioning Greenlight"
-		nobodyCrt := env.GreenlightNobodyCrt
-		nobodyKey := env.GreenlightNobodyKey
+		nobodyCrt, _ := svc.cfg.Get("GreenlightNobodyCrt", encryptionKey)
+		nobodyKey, _ := svc.cfg.Get("GreenlightNobodyKey", encryptionKey)
+		if nobodyCrt == "" {
+			nobodyCrt = env.GreenlightNobodyCrt
+		}
+		if nobodyKey == "" {
+			nobodyKey = env.GreenlightNobodyKey
+		}
 		if nobodyCrt == "" {
 			nobodyCrt = os.Getenv("GL_NOBODY_CRT")
 		}
 		if nobodyKey == "" {
 			nobodyKey = os.Getenv("GL_NOBODY_KEY")
 		}
+
+		// Uploaded certs are stored as encrypted PEM values; env certs are paths.
+		var certCleanup func()
+		if strings.Contains(nobodyCrt, "-----BEGIN CERTIFICATE-----") &&
+			strings.Contains(nobodyKey, "PRIVATE KEY") {
+			var err error
+			nobodyCrt, nobodyKey, certCleanup, err = greenlight.MaterializeDeveloperCert(workdir, nobodyCrt, nobodyKey)
+			if err != nil {
+				return nil, fmt.Errorf("materialize greenlight developer cert: %w", err)
+			}
+		}
 		dir, uri, err := greenlight.EnsureProvisioned(
 			signerDir, glNet, env.GreenlightGlcliPath, nobodyCrt, nobodyKey, mnemonic,
 		)
+		if certCleanup != nil {
+			certCleanup()
+		}
 		if err != nil {
 			_ = greenlight.ShredSeedFile(signerDir)
 			return nil, fmt.Errorf("greenlight provision: %w", err)

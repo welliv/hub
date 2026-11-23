@@ -24,7 +24,7 @@ export function GreenlightForm() {
     useSetupStore.getState().updateNodeInfo({
       backendType: "GREENLIGHT",
     });
-    navigate("/setup/security", {
+    navigate("/setup/greenlight-cert", {
       replace: true,
     });
   }, [navigate]);

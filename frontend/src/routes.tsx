@@ -60,6 +60,7 @@ import { ImportMnemonic } from "src/screens/setup/ImportMnemonic";
 import { RestoreNode } from "src/screens/setup/RestoreNode";
 import { SetupAdvanced } from "src/screens/setup/SetupAdvanced";
 import { SetupFinish } from "src/screens/setup/SetupFinish";
+import { SetupGreenlightCert } from "src/screens/setup/SetupGreenlightCert";
 import { SetupNode } from "src/screens/setup/SetupNode";
 import { SetupPassword } from "src/screens/setup/SetupPassword";
 import { SetupSecurity } from "src/screens/setup/SetupSecurity";
@@ -580,6 +581,10 @@ const routes: RouteObject[] = [
           {
             path: "advanced",
             element: <SetupAdvanced />,
+          },
+          {
+            path: "greenlight-cert",
+            element: <SetupGreenlightCert />,
           },
           {
             path: "import-mnemonic",

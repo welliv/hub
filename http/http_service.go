@@ -114,6 +114,8 @@ func (httpSvc *HttpService) RegisterSharedRoutes(e *echo.Echo) {
 	setupMiddlewares := []echo.MiddlewareFunc{unlockRateLimiter, httpSvc.requireSetupCode}
 	e.POST("/api/setup", httpSvc.setupHandler, setupMiddlewares...)
 	e.POST("/api/setup/verify-code", httpSvc.verifySetupCodeHandler, setupMiddlewares...)
+	e.POST("/api/setup/greenlight-cert", httpSvc.greenlightCertUploadHandler, setupMiddlewares...)
+	e.GET("/api/setup/greenlight-cert/status", httpSvc.greenlightCertStatusHandler, setupMiddlewares...)
 	e.POST("/api/restore", httpSvc.restoreBackupHandler, setupMiddlewares...)
 	e.GET("/logout", httpSvc.logoutHandler)
 
@@ -1327,6 +1329,31 @@ func (httpSvc *HttpService) setupHandler(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (httpSvc *HttpService) greenlightCertUploadHandler(c echo.Context) error {
+	unlockPassword := c.FormValue("unlockPassword")
+	if unlockPassword == "" {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{Message: "Unlock password is required"})
+	}
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{Message: fmt.Sprintf("Failed to read certificate file: %v", err)})
+	}
+	file, err := fileHeader.Open()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{Message: fmt.Sprintf("Failed to open certificate file: %v", err)})
+	}
+	defer file.Close()
+
+	if err := httpSvc.api.StartGreenlightCertUpload(unlockPassword, file); err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{Message: err.Error()})
+	}
+	return c.NoContent(http.StatusAccepted)
+}
+
+func (httpSvc *HttpService) greenlightCertStatusHandler(c echo.Context) error {
+	return c.JSON(http.StatusOK, httpSvc.api.GetGreenlightCertStatus())
 }
 
 func (httpSvc *HttpService) getLogOutputHandler(c echo.Context) error {

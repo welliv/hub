@@ -110,6 +110,33 @@ func ShredSeedFile(dataDir string) error {
 	return nil
 }
 
+// MaterializeDeveloperCert writes an uploaded developer certificate pair to
+// private files for glcli. The cleanup function removes both files after
+// provisioning; the encrypted copy remains in the Hub config for recovery.
+func MaterializeDeveloperCert(dataDir, crtPEM, keyPEM string) (string, string, func(), error) {
+	if crtPEM == "" || keyPEM == "" {
+		return "", "", nil, fmt.Errorf("developer certificate and key are required")
+	}
+	dir := filepath.Join(dataDir, "developer-cert")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", "", nil, err
+	}
+	crtPath := filepath.Join(dir, "client.crt")
+	keyPath := filepath.Join(dir, "client-key.pem")
+	cleanup := func() {
+		_ = os.Remove(keyPath)
+		_ = os.Remove(crtPath)
+	}
+	if err := os.WriteFile(crtPath, []byte(crtPEM), 0o600); err != nil {
+		return "", "", nil, err
+	}
+	if err := os.WriteFile(keyPath, []byte(keyPEM), 0o600); err != nil {
+		cleanup()
+		return "", "", nil, err
+	}
+	return crtPath, keyPath, cleanup, nil
+}
+
 // EnsureProvisioned writes seed from mnemonic, registers/recovers via glcli if needed,
 // extracts device PEMs, and returns (deviceCredsDir, nodeURI).
 func EnsureProvisioned(dataDir, network, glcliPath, nobodyCrt, nobodyKey, mnemonic string) (credsDir, nodeURI string, err error) {

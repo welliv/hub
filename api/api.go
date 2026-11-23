@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -59,6 +60,9 @@ type api struct {
 	// set after a migration file is created; the hub is halted at that point
 	// and the frontend should keep showing the migration success page
 	nodeMigrationFileCreated atomic.Bool
+
+	greenlightCertStatusMu sync.Mutex
+	greenlightCertStatus   GreenlightCertStatus
 }
 
 func NewAPI(svc service.Service, gormDB *gorm.DB, config config.Config, keys keys.Keys, albySvc alby.AlbyService, albyOAuthSvc alby.AlbyOAuthService, eventPublisher events.EventPublisher) *api {
