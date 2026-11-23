@@ -94,6 +94,39 @@ func (httpSvc *HttpService) RegisterSharedRoutes(e *echo.Echo) {
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
 
+	// The embedded frontend ships a ~2.6 MB JS bundle. Compress it for clients
+	// that accept gzip; this cuts the initial load dramatically on slower links.
+	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+		Level:     6,
+		MinLength: 1024,
+		Skipper: func(c echo.Context) bool {
+			path := c.Request().URL.Path
+			// Never compress backup downloads or live streams.
+			if strings.HasPrefix(path, "/api/backup") || strings.HasPrefix(path, "/api/events") {
+				return true
+			}
+			// Vite also emits fonts and images under /assets/. They are already
+			// compressed; gzip only wastes CPU on them.
+			for _, ext := range []string{".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".woff", ".woff2", ".zip", ".gz", ".br", ".mp4", ".pdf"} {
+				if strings.HasSuffix(strings.ToLower(path), ext) {
+					return true
+				}
+			}
+			return false
+		},
+	}))
+
+	// Vite fingerprints files under /assets/, so they can be cached forever.
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if (c.Request().Method == http.MethodGet || c.Request().Method == http.MethodHead) &&
+				strings.HasPrefix(c.Request().URL.Path, "/assets/") {
+				c.Response().Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			}
+			return next(c)
+		}
+	})
+
 	e.GET("/api/info", httpSvc.infoHandler)
 	// A single global rate limiter (one bucket for all callers, not per-IP)
 	// shared by every endpoint that verifies the unlock password or setup code,
