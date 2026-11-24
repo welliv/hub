@@ -331,17 +331,6 @@ function GreenlightChannelBackup() {
           move devices, and run only one Hub per Greenlight node.
         </p>
       </div>
-
-      <div>
-        <div className="flex gap-2 mb-1 items-center">
-          <h3 className="text-sm font-medium">Leaving Greenlight</h3>
-          <Badge className="shrink-0">Advanced</Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Full self-hosting export and CLN recovery are advanced, one-way flows.
-          CLN recovery needs peer force-close and is not automated here.
-        </p>
-      </div>
     </div>
   );
 }

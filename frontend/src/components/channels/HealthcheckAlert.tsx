@@ -1,6 +1,7 @@
 import { AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "src/components/ui/alert";
 import { useHealthCheck } from "src/hooks/useHealthCheck";
+import { getNodeNotReadyReason, isNodeSyncingAlarm } from "src/lib/health";
 import { AlbyInfoIncident, HealthAlarm } from "src/types";
 import { ExternalLinkButton } from "../ui/custom/external-link-button";
 
@@ -8,6 +9,8 @@ export function HealthCheckAlert() {
   const { data: health } = useHealthCheck();
 
   const ok = !health?.alarms?.length;
+  const onlySyncing =
+    !!health?.alarms?.length && health.alarms.every(isNodeSyncingAlarm);
 
   if (!health) {
     return null;
@@ -31,8 +34,19 @@ export function HealthCheckAlert() {
           );
         case "channels_offline":
           return "One or more channels are offline";
-        case "node_not_ready":
+        case "node_not_ready": {
+          const reason = getNodeNotReadyReason(alarm);
+          if (isNodeSyncingAlarm(alarm)) {
+            return "Node is syncing";
+          }
+          if (reason === "signer not running") {
+            return "Local signer is not running";
+          }
+          if (reason === "node unreachable") {
+            return "Node is unreachable";
+          }
           return "Node is not ready";
+        }
         case "nostr_relay_offline":
           return (
             "Could not connect to relay: " +
@@ -50,10 +64,10 @@ export function HealthCheckAlert() {
   return (
     <>
       <Alert className="animate-highlight">
-        {ok ? (
+        {onlySyncing ? (
           <>
             <CheckCircle2Icon className="h-4 w-4" />
-            <AlertTitle>Alby Hub is running smoothly</AlertTitle>
+            <AlertTitle>Your node is still starting up</AlertTitle>
           </>
         ) : (
           <>
@@ -66,8 +80,17 @@ export function HealthCheckAlert() {
         <AlertDescription>
           {health.alarms?.length && (
             <ul className="mt-2 whitespace-pre-wrap list-disc list-inside">
-              {health.alarms?.map((alarm) => (
-                <li key={alarm.kind}>{getAlarmTitle(alarm)}</li>
+              {health.alarms?.map((alarm, index) => (
+                <li key={`${alarm.kind}-${index}`}>
+                  {getAlarmTitle(alarm)}
+                  {isNodeSyncingAlarm(alarm) && (
+                    <span className="block whitespace-normal text-muted-foreground">
+                      Your Lightning node is catching up with the Bitcoin
+                      network. Keep this Hub running and unlocked while it
+                      finishes.
+                    </span>
+                  )}
+                </li>
               ))}
             </ul>
           )}
